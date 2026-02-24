@@ -15,6 +15,7 @@ Full-stack generalist. Designed test equipment across aerospace and agricultural
 [**Sound Box**](https://github.com/Valpatel/app-soundbox) — Local synthetic audio generation box for AI agents and humans. MusicGen, AudioGen, MAGNeT, Piper TTS.
 
 [**Graphlings**](https://graphlings.net) — Autonomous digital creatures with layered AI consciousness. Peer-to-peer mesh, cross-platform. Coming 2026.
+
 <a href="https://graphlings.net"><img src="https://raw.githubusercontent.com/mvalancy/mvalancy/main/graphlings-logo.png" width="64" alt="Graphlings"></a>
 
 ---
