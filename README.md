@@ -30,4 +30,3 @@ Full-stack generalist. Designed test equipment across aerospace and agricultural
 
 [**motor-ui-ddsm115-220**](https://github.com/mvalancy/motor-ui-ddsm115-220) — Touch-friendly GUI for DDSM115/DDSM210 servo motors with real-time monitoring.
 
-[**tritium-coder**](https://github.com/mvalancy/tritium-coder) — Dead simple one-button local AI coder for prosumer mini PCs.
