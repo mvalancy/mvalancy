@@ -2,7 +2,7 @@
 
 Owner at [Valpatel Software](https://valpatel.com) — autonomous platforms, edge AI, robotics simulation. Dublin, California.
 
-Full-stack generalist. Designed test equipment across aerospace and agricultural robotics (Tesla, Joby, Astra, Monarch). Now building independent thinking machines.
+Full-stack generalist. Designed test equipment across land/sea/air/space domains and agricultural robotics (Tesla, Joby, Astra, Monarch). Now building independent thinking machines.
 
 ---
 
