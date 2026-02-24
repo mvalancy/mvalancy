@@ -30,3 +30,5 @@ Full-stack generalist. Designed test equipment across aerospace and agricultural
 
 [**motor-ui-ddsm115-220**](https://github.com/mvalancy/motor-ui-ddsm115-220) — Touch-friendly GUI for DDSM115/DDSM210 servo motors with real-time monitoring.
 
+<a href="https://github.com/mvalancy/motor-ui-ddsm115-220"><img src="https://raw.githubusercontent.com/mvalancy/motor-ui-ddsm115-220/main/docs/ui_control.png" width="60%" alt="Motor UI"></a>
+
