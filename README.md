@@ -8,9 +8,9 @@ Full-stack generalist. Designed test equipment across land/sea/air/space domains
 
 ### Valpatel Projects
 
-<a href="https://github.com/Valpatel/tritium-sc"><img src="https://raw.githubusercontent.com/Valpatel/tritium-sc/main/docs/screenshots/command-center.png" width="49%" alt="Tritium-SC"></a> <a href="https://github.com/Valpatel/app-soundbox"><img src="https://raw.githubusercontent.com/Valpatel/app-soundbox/main/docs/screenshots/radio.png" width="49%" alt="Sound Box"></a>
+<a href="https://github.com/Valpatel/tritium"><img src="https://github.com/Valpatel/tritium/raw/main/docs/screenshots/command-center.png" width="49%" alt="Tritium"></a> <a href="https://github.com/Valpatel/app-soundbox"><img src="https://raw.githubusercontent.com/Valpatel/app-soundbox/main/docs/screenshots/radio.png" width="49%" alt="Sound Box"></a>
 
-[**Tritium-SC**](https://github.com/Valpatel/tritium-sc) — AI commander for neighborhood security and outdoor robot combat. Real cameras, robot dogs, drones, Nerf turrets.
+[**Tritium**](https://github.com/Valpatel/tritium) — Unified operating picture for target tracking and identification. Fuses BLE, WiFi, camera, radar, SDR, LoRa mesh, and acoustic sensors into one tactical map. 23+ plugins, pluggable AI commander, ESP32 edge firmware with 66+ HALs. Neighborhood security is too important to be a SaaS.
 
 [**Sound Box**](https://github.com/Valpatel/app-soundbox) — Local synthetic audio generation box for AI agents and humans. MusicGen, AudioGen, MAGNeT, Piper TTS.
 
@@ -35,4 +35,3 @@ Full-stack generalist. Designed test equipment across land/sea/air/space domains
 [**motor-ui-ddsm115-220**](https://github.com/mvalancy/motor-ui-ddsm115-220) — Touch-friendly GUI for DDSM115/DDSM210 servo motors with real-time monitoring.
 
 <a href="https://github.com/mvalancy/motor-ui-ddsm115-220"><img src="https://raw.githubusercontent.com/mvalancy/motor-ui-ddsm115-220/main/docs/ui_control.png" width="60%" alt="Motor UI"></a>
-
