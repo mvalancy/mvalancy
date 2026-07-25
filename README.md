@@ -8,9 +8,13 @@ Full-stack generalist. Designed test equipment across land/sea/air/space domains
 
 ### Valpatel Projects
 
-<a href="https://github.com/Valpatel/tritium"><img src="https://github.com/Valpatel/tritium/raw/main/docs/screenshots/command-center.png" width="49%" alt="Tritium"></a> <a href="https://github.com/Valpatel/app-soundbox"><img src="https://raw.githubusercontent.com/Valpatel/app-soundbox/main/docs/screenshots/radio.png" width="49%" alt="Sound Box"></a>
+*Valpatel work is now closed source — initially open, consolidated behind one boundary as the
+Graphlings work surfaced emergent capabilities. Earlier releases remain under the terms they were issued.*
 
-[**Tritium**](https://github.com/Valpatel/tritium) — Unified operating picture for target tracking and identification. Fuses BLE, WiFi, camera, radar, SDR, LoRa mesh, and acoustic sensors into one tactical map. 23+ plugins, pluggable AI commander, ESP32 edge firmware with 66+ HALs. Neighborhood security is too important to be a SaaS.
+
+<a href="https://github.com/Valpatel"><img src="https://raw.githubusercontent.com/Valpatel/.github/main/assets/tritium-command-center.png" width="49%" alt="Tritium"></a> <a href="https://github.com/Valpatel/app-soundbox"><img src="https://raw.githubusercontent.com/Valpatel/app-soundbox/main/docs/screenshots/radio.png" width="49%" alt="Sound Box"></a>
+
+[**Tritium**](https://github.com/Valpatel) — Unified operating picture for target tracking and identification. Fuses BLE, WiFi, camera, radar, SDR, LoRa mesh, and acoustic sensors into one tactical map. 23+ plugins, pluggable AI commander, ESP32 edge firmware with 66+ HALs. Neighborhood security is too important to be a SaaS.
 
 [**Sound Box**](https://github.com/Valpatel/app-soundbox) — Local synthetic audio generation box for AI agents and humans. MusicGen, AudioGen, MAGNeT, Piper TTS.
 
