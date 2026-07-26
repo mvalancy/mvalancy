@@ -26,9 +26,9 @@ Graphlings work surfaced emergent capabilities. Earlier releases remain under th
 
 ### Personal Projects
 
-[**CyberPower-PDU**](https://github.com/mvalancy/CyberPower-PDU) — Self-hosted PDU monitoring dashboard with MQTT and Home Assistant integration.
+**CyberPower-PDU** — Self-hosted PDU monitoring dashboard with MQTT and Home Assistant integration. *(private)*
 
-<a href="https://github.com/mvalancy/CyberPower-PDU"><img src="https://github.com/mvalancy/mvalancy/raw/main/assets/cyberpower-pdu-dashboard.png" width="60%" alt="CyberPower PDU Dashboard"></a>
+<img src="https://github.com/mvalancy/mvalancy/raw/main/assets/cyberpower-pdu-dashboard.png" width="60%" alt="CyberPower PDU Dashboard">
 
 [**val-ark**](https://github.com/mvalancy/val-ark) — Offline-first tool server. Fills a disk with open-source software, AI models, and reference content, then serves it over local wifi.
 
