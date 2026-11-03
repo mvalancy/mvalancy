@@ -71,16 +71,23 @@ class ProfileUpdate(unittest.TestCase):
             self.assertNotIn(gone, names)
         self.assertFalse(any("secret" in c or "a-fork" in c for c in self.calls))
 
-    def test_spotlight_orders_by_newest_commit_and_links_live_sites(self):
+    def test_spotlight_keeps_the_owners_four_in_order_and_links_live_sites(self):
         spot = self.out.split("<!-- spotlight:start -->")[1].split("<!-- spotlight:end -->")[0]
-        order = [spot.index(f"assets/spot/{n}.svg") for n in ("cad-agent", "gyropup", "val-ark", "j501-agx-orin")]
-        self.assertEqual(order, sorted(order))
+        order = [spot.index(f"assets/spot/{n}-dark.svg") for n in ("cad-agent", "gyropup", "val-ark", "j501-agx-orin")]
+        self.assertEqual(order, sorted(order))                      # SPOT's order, whatever was pushed last
+        self.assertEqual(spot.count("#gh-dark-mode-only"), 4)       # each card in both schemes
+        self.assertEqual(spot.count("#gh-light-mode-only"), 4)
         self.assertIn('href="https://cad-agent.valpatel.com"', spot)
         self.assertIn('href="https://gyropup.com"', spot)
         self.assertIn("v/release/Valpatel/cad-agent", spot)  # has a release
         self.assertIn("last-commit/Valpatel/gyropup", spot)  # has none
         self.assertIn("validate_review: fix", spot)
         self.assertNotIn("old", spot)
+
+    def test_a_missing_spotlight_repo_fails_the_run(self):
+        data = dict(self.data, repos=[r for r in self.data["repos"] if r["full"] != "mvalancy/val-ark"])
+        with self.assertRaises(SystemExit):
+            update.update(README, data)
 
     def test_commit_text_is_one_safe_line(self):
         spot = self.out.split("<!-- spotlight:end -->")[0]
@@ -90,7 +97,7 @@ class ProfileUpdate(unittest.TestCase):
         self.assertNotIn("Merge pull request", spot)
         self.assertNotIn("body", spot)
         self.assertIn("Add fit check", spot)
-        self.assertTrue(all(len(line) < 400 for line in spot.splitlines()))
+        self.assertTrue(all(len(line) < 600 for line in spot.splitlines()))
         self.assertIn("…", spot)  # the long gyropup line is cut
 
     def test_activity_lists_recent_stable_releases(self):

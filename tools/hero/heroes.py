@@ -42,7 +42,10 @@ THIS_REPO = "mvalancy/mvalancy"
 BUDGET = {"hero": 150_000, "spot": 150_000, "card": 30_000}
 REDUCED_MOTION = "@media (prefers-reduced-motion:reduce){*{animation:none!important}}"
 SIZES = {"hero": (1200, 440), "spot": (800, 400), "card": (600, 300)}
-THEMES = {"hero": ["light", "dark"], "spot": ["auto"], "card": ["auto"]}   # cards sit in links: one file, OS theme
+# One file per scheme, the colours baked in. WebKit (every iOS browser) draws an SVG in an <img> with the light scheme
+# whatever the page is, so a colour scheme switched inside the SVG never fires there; the README picks the file
+# (<picture> sources, or GitHub's #gh-dark-mode-only / #gh-light-mode-only for an image inside a link).
+THEMES = {"hero": ["light", "dark"], "spot": ["light", "dark"], "card": ["light", "dark"]}
 
 # ------------------------------------------------------------------------------------------------ palettes
 
