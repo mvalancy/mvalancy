@@ -129,16 +129,18 @@ class Committed(unittest.TestCase):
     def test_every_banner_in_this_repo_is_what_its_spec_renders_to(self):
         self.assertEqual(heroes.main(["--check"]), 0)
 
-    def test_check_fails_when_a_committed_banner_differs(self):
-        spec = next(b for b in heroes.banners() if heroes.outputs(b, {}))
-        theme, path = heroes.outputs(spec, {})[0]
-        original = path.read_text(encoding="utf-8")
-        try:
-            path.write_text(original.replace("</svg>", "<!-- --></svg>"), encoding="utf-8")
-            self.assertEqual(heroes.main(["--check", spec["name"]]), 1)
-        finally:
-            path.write_text(original, encoding="utf-8")
-        self.assertEqual(heroes.main(["--check", spec["name"]]), 0)
+    def test_check_fails_when_a_banner_differs(self):
+        # on a copy written into a temporary checkout, so the committed files are never touched
+        import contextlib, io, tempfile
+        spec = next(b for b in heroes.banners() if isinstance(b.get("out"), str) and ":" in b["out"])
+        repo = spec["out"].split(":", 1)[0]
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            args = [spec["name"], "--repo", f"{repo}={tmp}"]
+            self.assertEqual(heroes.main(args), 0)
+            self.assertEqual(heroes.main(["--check"] + args), 0)
+            for _, path in heroes.outputs(spec, {repo: Path(tmp)}):
+                path.write_text(path.read_text(encoding="utf-8").replace("</svg>", "<!-- --></svg>"), encoding="utf-8")
+            self.assertEqual(heroes.main(["--check"] + args), 1)
 
 
 if __name__ == "__main__":
