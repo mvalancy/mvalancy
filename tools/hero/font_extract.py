@@ -42,6 +42,7 @@ def extract(font_path: Path) -> dict:
         out["upm"] = font["head"].unitsPerEm
         out["cap"] = getattr(font["OS/2"], "sCapHeight", 700)
         out["xheight"] = getattr(font["OS/2"], "sxHeight", 500)
+        out["asc"], out["desc"] = font["hhea"].ascent, font["hhea"].descent
         glyphs = {}
         for ch in CHARS:
             name = cmap.get(ord(ch))

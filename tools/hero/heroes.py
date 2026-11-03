@@ -229,7 +229,7 @@ def motif_cad(doc, data, box, mini, t0):
     def tf(p):
         return (ox + p[0] * sx, oy + p[1] * sx)
 
-    min_px = 11.0 if mini else 3.0
+    min_px = 14.0 if mini else 3.0
     digits = 0 if mini else 1                       # cards are small: whole pixels are enough
     fills = {"shell": "var(--f1)", "plate": "var(--f2)", "lid": "var(--f3)", "body": "var(--f1)", "accent": "var(--a1)",
              "dark": "var(--dk)"}
@@ -251,7 +251,7 @@ def motif_cad(doc, data, box, mini, t0):
             cls = "pt in"
             style = f' style="--fx:{n(fx)}px;--fy:{n(fy)}px;animation-delay:{n(t0 + 0.7 + 0.55 * (g - 1), 2)}s"'
         out.append(f'<g class="{cls}"{style}><path class="sil" fill="{fills[part["role"]]}" '
-                   f'd="{"".join(poly(simplify([tf(p) for p in loop], 0.6) if mini else [tf(p) for p in loop], True, digits) for loop in part["outlines"])}"/>'
+                   f'd="{"".join(poly(simplify([tf(p) for p in loop], 1.0) if mini else [tf(p) for p in loop], True, digits) for loop in part["outlines"])}"/>'
                    f'<path class="ed" d="{"".join(lines)}"/></g>')
     out.append("</g>")
     # a scan line sweeps the base as it is "traced", then idles
@@ -284,10 +284,17 @@ def motif_catalog(doc, data, box, mini, t0):
     out = [f'<rect class="disk" x="{n(gx - 8)}" y="{n(gy - 26)}" width="{n(cols * (cell + gap) + 14)}" '
            f'height="{n(rows * (cell + gap) + 34)}" rx="10"/>']
     span = 1.6 if mini else 2.4
-    for i, it in enumerate(items):
-        cx, cy = gx + (i % cols) * (cell + gap), gy + (i // cols) * (cell + gap)
-        out.append(f'<rect class="cell in" x="{n(cx)}" y="{n(cy)}" width="{n(cell)}" height="{n(cell)}" rx="{n(cell / 4)}" '
-                   f'fill="{colour[it[0]]}"{_delay(t0 + span * i / len(items))}/>')
+    for r in range(rows):                           # a card pops a row at a time; a hero pops cell by cell
+        row = items[r * cols:(r + 1) * cols]
+        if mini:
+            out.append(f'<g class="rw in"{_delay(t0 + span * r / rows)}>')
+        for c, it in enumerate(row):
+            i = r * cols + c
+            cx, cy = gx + c * (cell + gap), gy + r * (cell + gap)
+            out.append(f'<rect x="{n(cx)}" y="{n(cy)}" width="{n(cell)}" height="{n(cell)}" rx="{n(cell / 4)}" '
+                       f'fill="{colour[it[0]]}"' + ("/>" if mini else f' class="cell in"{_delay(t0 + span * i / len(items))}/>'))
+        if mini:
+            out.append("</g>")
     bw = cols * (cell + gap) - gap
     out.append(f'<rect class="bar0" x="{n(gx)}" y="{n(gy - 16)}" width="{n(bw)}" height="6" rx="3"/>'
                f'<rect class="bar in" x="{n(gx)}" y="{n(gy - 16)}" width="{n(bw * 0.86)}" height="6" rx="3"'
@@ -306,7 +313,7 @@ def motif_catalog(doc, data, box, mini, t0):
     doc.css.append(".disk{fill:var(--bg2);stroke:var(--line)}.bar0{fill:var(--line)}.bar{fill:url(#gr);"
                    "transform-box:fill-box;transform-origin:0 0}.bar.in{animation:grow %ss ease-out both}"
                    "@keyframes grow{from{transform:scaleX(0)}}"
-                   ".cell{transform-box:fill-box;transform-origin:50%% 50%%}.cell.in{animation:pop .35s ease-out both}"
+                   ".cell{transform-box:fill-box;transform-origin:50%% 50%%}.cell.in{animation:pop .35s ease-out both}.rw.in{animation:fade .4s both}"
                    "@keyframes pop{from{transform:scale(0);opacity:0}}"
                    ".ant{fill:var(--a1)}.arc{fill:none;stroke:var(--a1);stroke-width:%s;stroke-linecap:round;"
                    "animation:wave 2.4s ease-out infinite}"
@@ -801,6 +808,61 @@ def motif_data(spec: dict) -> dict:
 
 # ------------------------------------------------------------------------------------------------ the banner
 
+def _sketch_title(doc, title, x0, base, s, adv, mini):
+    """The name grows from a drafting sketch: a faint graph-paper grid appears, guide lines (baseline, x-height,
+    cap height, descender) and a box per letter are drafted, each letter's outline is drawn as a thin construction
+    stroke, the strokes gain weight, the letters fill and solidify, and the grid and construction fade away. The
+    base style of every element is the finished wordmark, so reduced motion shows only the final name.
+    Returns (svg, css, time the name is done)."""
+    G = glyphs()
+    upm, asc, desc, cap, xh = G["upm"], G["asc"], G["desc"], G["cap"], G["xheight"]
+    tr = f"translate({n(x0)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
+    g = G["weights"]["bold"]
+    t0, stagger, dur = (0.15, 0.035, 1.5) if mini else (0.25, 0.05, 2.1)
+    t_end = t0 + 0.3 + stagger * (len(title) - 1) + dur            # the last letter is solid
+    # graph paper behind the name, aligned to its left edge and baseline
+    cell = 8 if mini else 12
+    gx0, gx1 = x0 - cell, x0 + adv * s + cell
+    gy0, gy1 = base - asc * s * 0.92, base - desc * s + cell * 0.5
+    minor = "".join(f"M{k * cell} 0V{cell * 5}M0 {k * cell}H{cell * 5}" for k in range(5))
+    doc.defs.append(f'<pattern id="gp" width="{cell * 5}" height="{cell * 5}" patternUnits="userSpaceOnUse" '
+                    f'x="{n(x0)}" y="{n(base)}"><path d="{minor}" stroke="var(--a2)" stroke-width=".5" opacity=".45"/>'
+                    f'<path d="M0 0V{cell * 5}M0 0H{cell * 5}" stroke="var(--a2)" stroke-width="1"/></pattern>')
+    out = [f'<rect class="gp" x="{n(gx0)}" y="{n(gy0)}" width="{n(gx1 - gx0)}" height="{n(gy1 - gy0)}" fill="url(#gp)"/>']
+    # construction: guide lines and a box per letter, in font units, with strokes kept at screen width
+    con = []
+    for k, yv in enumerate((0, xh, cap, desc)):
+        con.append(f'<path class="gl" d="M{-int(upm * 0.12)} {yv}H{int(adv + upm * 0.12)}" '
+                   f'style="animation-delay:{n(t0 + 0.06 * k, 2)}s"/>')
+    x = 0
+    for i, c in enumerate(title):
+        a = g.get(c, g[" "])[0]
+        if c != " ":
+            con.append(f'<rect class="gb" x="{x}" y="{desc}" width="{a}" height="{cap - desc}" pathLength="1" '
+                       f'style="animation-delay:{n(t0 + 0.15 + stagger * i, 2)}s"/>')
+        x += a
+    out.append(f'<g class="con" transform="{tr}">{"".join(con)}</g>')
+    letters = doc.uses(title, "bold", lambda i: _delay(t0 + 0.3 + stagger * i))
+    w_thin, w_bold, w_end = 0.9 / s, (2.6 if mini else 3.4) / s, 1.2 / s
+    out.append(f'<g class="nm" transform="{tr}" fill="url(#ng)" stroke="url(#ng)" stroke-width="{n(w_end, 1)}">{letters}</g>')
+    total = t_end + 0.4
+    css = (f".nm use{{stroke-dasharray:1;stroke-dashoffset:0;animation:ink {n(dur, 2)}s cubic-bezier(.45,0,.2,1) both}}"
+           f"@keyframes ink{{0%{{stroke-dashoffset:1;stroke-width:{n(w_thin, 1)}px;fill-opacity:0}}"
+           f"42%{{stroke-dashoffset:0;stroke-width:{n(w_thin, 1)}px;fill-opacity:0}}"
+           f"66%{{stroke-width:{n(w_bold, 1)}px;fill-opacity:.15}}100%{{stroke-width:{n(w_end, 1)}px;fill-opacity:1}}}}"
+           f".gp{{opacity:0;animation:gp {n(total, 2)}s linear both}}"
+           f"@keyframes gp{{0%{{opacity:0}}8%{{opacity:1}}70%{{opacity:1}}100%{{opacity:0}}}}"
+           f".con path,.con rect{{fill:none;vector-effect:non-scaling-stroke}}"
+           f".gl{{stroke:var(--a2);stroke-width:1;stroke-dasharray:6 4;opacity:0;transform-box:fill-box;transform-origin:0 0;"
+           f"animation:gl {n(total - t0, 2)}s ease-out both}}"
+           f"@keyframes gl{{0%{{opacity:.9;transform:scaleX(0)}}18%{{transform:scaleX(1)}}70%{{opacity:.8}}100%{{opacity:0}}}}"
+           f".gb{{stroke:var(--muted);stroke-width:1;stroke-dasharray:1;opacity:0;animation:gb {n(dur + 0.4, 2)}s ease-out both}}"
+           f"@keyframes gb{{0%{{opacity:.85;stroke-dashoffset:1}}30%{{opacity:.85;stroke-dashoffset:0}}"
+           f"65%{{opacity:.55;stroke-dashoffset:0}}100%{{opacity:0;stroke-dashoffset:0}}}}")
+    return "".join(out), css, t_end - 0.5
+
+
+
 def render(spec: dict, theme: str) -> str:
     kind = spec.get("kind", "hero")
     W, H = SIZES[kind]
@@ -824,15 +886,12 @@ def render(spec: dict, theme: str) -> str:
     tr = f"translate({n(margin)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
     doc.defs.append(f'<linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{n(adv, 0)}" y2="0">'
                     f'<stop offset="0" stop-color="var(--a1)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient>')
-    stagger = 0.035 if mini else 0.045
-    letters = doc.uses(title, "bold", lambda i: _delay(stagger * i))
-    stroke_w = n(1.6 / s, 1)
-    body.append(f'<g class="nm" transform="{tr}" fill="url(#ng)" stroke="url(#ng)" stroke-width="{stroke_w}">{letters}</g>')
+    letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, mini)
+    body.append(letters_svg)
     if not mini:
         doc.defs.append(f'<clipPath id="nc" transform="{tr}">{doc.uses(title, "bold")}</clipPath>')
         body.append(f'<g clip-path="url(#nc)"><rect class="sh" x="{n(margin - 160)}" y="{n(margin - 10)}" width="120" '
                     f'height="{n(fs + 20)}" fill="#fff" transform="skewX(-20)"/></g>')
-    t_name = stagger * len(title) + 0.9
 
     # underline, tagline
     y = base + max(12 if mini else 22, 0.2 * fs + (4 if mini else 8))      # clear of descenders
@@ -891,9 +950,7 @@ def render(spec: dict, theme: str) -> str:
     motif_svg = MOTIFS[m["kind"]](doc, m, box, mini, 0.3 if mini else 0.5)
 
     label = spec.get("alt") or f"{title}: {spec.get('tagline', '')}".strip(": ")
-    css = (".nm use{stroke-dasharray:1;stroke-dashoffset:0;animation:ink 1.3s ease-out both}"
-           "@keyframes ink{0%%{stroke-dashoffset:1;fill-opacity:0}55%%{stroke-dashoffset:0;fill-opacity:0}100%%{fill-opacity:1}}"
-           ".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 8s %ss ease-in-out infinite}"
+    css = sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 8s %ss ease-in-out infinite}"
            "@keyframes shine{0%%{transform:translateX(-200px) skewX(-20deg)}22%%,100%%{transform:translateX(%spx) skewX(-20deg)}}"
            ".ul{transform-box:fill-box;transform-origin:0 0;animation:grow .9s %ss ease-out both}"
            "@keyframes grow{from{transform:scaleX(0)}}"
