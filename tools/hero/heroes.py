@@ -296,7 +296,7 @@ def motif_cad(doc, data, box, mini, t0):
             cls = "pt in"
             style = f' style="--fx:{n(fx)}px;--fy:{n(fy)}px;animation-delay:{n(t0 + 0.7 + 0.55 * (g - 1), 2)}s"'
         body = "".join(
-            f'<path class="sil{" gl" if role == "glass" else ""}" fill="{fills[role]}" d="'
+            f'<path class="sil{" glass" if role == "glass" else ""}" fill="{fills[role]}" d="'
             + "".join(poly(simplify([tf(p) for p in loop], 1.0) if mini else [tf(p) for p in loop], True, digits)
                       for loop in loops) + '"/>'
             for role, loops in _loops(part).items()) + f'<path class="ed" d="{"".join(lines)}"/>'
@@ -312,7 +312,7 @@ def motif_cad(doc, data, box, mini, t0):
     out.append(f'<rect class="scan" x="{n(x)}" y="{n(y)}" width="3" height="{n(h)}" rx="1.5"{_delay(t0)}/>')
     doc.css.append(".cad .ed{fill:none;stroke:var(--edge);stroke-width:%s;stroke-linecap:round;stroke-linejoin:round;"
                    "opacity:.9}.cad .sil{stroke:var(--edge);stroke-width:%s;stroke-linejoin:round}"
-                   ".cad .gl{fill-opacity:.35}"
+                   ".cad .glass{fill-opacity:.35}"
                    ".cad .pt.in{animation:slide .9s cubic-bezier(.2,.8,.2,1) both}"
                    "@keyframes slide{from{transform:translate(var(--fx),var(--fy));opacity:0}to{opacity:1}}"
                    ".cad .pt.tr{animation:trace 1.2s ease-out both}"

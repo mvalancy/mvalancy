@@ -55,7 +55,8 @@ class Sample(unittest.TestCase):
 
     def test_a_posed_group_scans_and_rests_still_under_reduced_motion(self):
         square = lambda x0: {"plate": [[[x0, 0], [x0 + 10, 0], [x0 + 10, 10], [x0, 10]]]}
-        parts = [{"name": "base", "group": "base", "from": [0, 0], "regions": square(0), "lines": [[[0, 0], [10, 10]]]}]
+        parts = [{"name": "base", "group": "base", "from": [0, 0], "regions": dict(square(0), glass=square(5)["plate"]),
+                  "lines": [[[0, 0], [10, 10]]]}]
         parts += [{"name": "head", "group": "head", "from": [0, -20], "regions": square(10 + k), "lines": [], "pose": k}
                   for k in range(3)]
         motif = {"kind": "cad", "parts": parts, "rest_pose": 1, "scan": [[1, 1.0], [0, 0.5], [2, 0.5]]}
@@ -65,6 +66,7 @@ class Sample(unittest.TestCase):
         self.assertIn('<g class="ps0" opacity="0">', text)
         self.assertIn('<g class="ps2" opacity="0">', text)
         self.assertIn("@keyframes ps0{", text)
+        self.assertIn('class="sil glass"', text)                     # not the title's guide-line class ("gl")
         card = sample("card", motif=motif)                            # cards keep only the rest pose
         self.assertNotIn("ps0", card)
         self.assertEqual(heroes.problems(card, "card"), [])
