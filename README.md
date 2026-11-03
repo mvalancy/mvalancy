@@ -29,7 +29,7 @@ Graphlings work surfaced emergent capabilities. Earlier releases remain under th
 <picture><source media="(prefers-color-scheme: dark)" srcset="assets/cards/club-fight-dark.svg"><img src="assets/cards/club-fight-light.svg" width="49%" alt="Club Fight: An animal fighting game."></picture>
 </p>
 
-[**Gyropup**](https://github.com/Valpatel/gyropup) — A self-balancing wheel-legged robot and foam-ball turret, designed and simulated in the open. [gyropup.com](https://gyropup.com)
+[**Gyropup**](https://github.com/Valpatel/gyropup) — A research robot designed to balance on two wheel-legs, with a foam-ball turret; CAD and simulation in the open. [gyropup.com](https://gyropup.com)
 
 [**cad-agent**](https://github.com/Valpatel/cad-agent) — A workshop where AI agents get better at CAD by learning from everyone else.
 
