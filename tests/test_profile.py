@@ -36,19 +36,19 @@ API = {
         commit("2026-11-03T01:00:00Z", "Merge pull request #9 from x/y", 2),
         commit("2026-11-03T00:30:00Z", "Add `fit` check <script>alert(1)</script> see https://evil.example @someone\nbody"),
     ],
-    "/repos/Valpatel/cad-agent/releases?per_page=30": [
+    "/repos/Valpatel/cad-agent/releases?per_page=100": [
         dict(tag_name="v0.18.0-rc", html_url="u", published_at="2026-11-03T00:00:00Z", prerelease=True),
         dict(tag_name="v0.17.0", html_url="https://github.com/Valpatel/cad-agent/releases/tag/v0.17.0",
              published_at="2026-11-02T15:00:00Z"),
     ],
     "/repos/Valpatel/gyropup/commits?per_page=20": [commit("2026-11-02T20:00:00Z", "Leg v2: " + "long words " * 20)],
     "/repos/mvalancy/val-ark/commits?per_page=20": [commit("2026-11-02T07:00:00Z", "Release 0.1.18")],
-    "/repos/mvalancy/val-ark/releases?per_page=30": [
+    "/repos/mvalancy/val-ark/releases?per_page=100": [
         dict(tag_name="0.1.18", html_url="https://github.com/mvalancy/val-ark/releases/tag/0.1.18",
              published_at="2026-11-02T07:20:00Z")],
     "/repos/mvalancy/j501-agx-orin/commits?per_page=20": [commit("2026-10-31T06:00:00Z", "validate_review: fix")],
     "/repos/mvalancy/lesson-plans/commits?per_page=20": [commit("2026-10-28T16:00:00Z", "Publish lessons")],
-    "/repos/mvalancy/lesson-plans/releases?per_page=30": [
+    "/repos/mvalancy/lesson-plans/releases?per_page=100": [
         dict(tag_name="v1", html_url="old", published_at="2026-06-01T00:00:00Z")],
 }
 README = "top\n<!-- spotlight:start -->\nold\n<!-- spotlight:end -->\nmid\n<!-- activity:start -->\n<!-- activity:end -->\nend\n"

@@ -88,7 +88,7 @@ def clean(text: str, limit: int = 80, more: str = "…") -> str:
     line = re.sub(r"https?://\S+", "", line)
     line = re.sub(r"[`<>\\]", "", line)
     line = re.sub(r"@(?=\w)", "", line)
-    line = re.sub(r"[\x00-\x1f\x7f]", "", line)
+    line = re.sub(r"[\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]", "", line)   # controls, bidi, zero-width
     line = re.sub(r"\s+", " ", line).strip(" -:·")
     if len(line) > limit:
         line = line[: limit - len(more)].rsplit(" ", 1)[0].rstrip(" ,;:-") + more
@@ -122,8 +122,8 @@ def last_commit(full: str, get=fetch):
 
 
 def releases(full: str, get=fetch) -> list:
-    """Published, non-prerelease releases, newest first (the last 30 of them)."""
-    rel = [r for r in get(f"/repos/{full}/releases?per_page=30") or [] if not r.get("draft") and not r.get("prerelease")]
+    """Published, non-prerelease releases, newest first (the last 100 of them)."""
+    rel = [r for r in get(f"/repos/{full}/releases?per_page=100") or [] if not r.get("draft") and not r.get("prerelease")]
     return sorted(rel, key=lambda r: r["published_at"], reverse=True)
 
 
@@ -214,8 +214,8 @@ def ticker(data: dict) -> str:
         return ""
     first, rest = recent[0], recent[1:]
     line = (f'<b>▸ Now building</b> · <a href="{first["url"]}">{html.escape(first["name"])}</a>: '
-            f'{html.escape(clean(first["commit"][1], 56), False)} ({day(first["commit"][0])})')
-    line += "".join(f' · <a href="{r["url"]}">{html.escape(r["name"])}</a> ({day(r["commit"][0])})' for r in rest)
+            f'{html.escape(clean(first["commit"][1], 56), False)}, {day(first["commit"][0])}')
+    line += "".join(f' · <a href="{r["url"]}">{html.escape(r["name"])}</a>, {day(r["commit"][0])}' for r in rest)
     return f"<p><sub>{line}</sub></p>"
 
 
