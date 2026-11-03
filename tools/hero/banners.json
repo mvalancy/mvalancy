@@ -88,7 +88,7 @@
    "facts": [
     "J47 → 2 × DE9",
     "SM712 TVS per port",
-    "120R termination jumpers",
+    "termination jumpers",
     "A1 prototype"
    ],
    "motif": {

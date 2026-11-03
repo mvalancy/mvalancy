@@ -162,6 +162,7 @@ class Sample(unittest.TestCase):
         self.assertEqual([fps["J2"]["pads"][0][:2], fps["J2"]["pads"][1][:2]], [[30, 4], [30, 6]])
         self.assertEqual(data["nets"][fps["J2"]["pads"][0][6]], "/CAN_H")
         self.assertIsNone(fps["J2"]["pads"][2][6])                   # the unplated hole has no net
+        self.assertEqual([p[8] for p in fps["J2"]["pads"]], [0, 0, 1])
         self.assertEqual(len(data["tracks"]["/CAN_H"]), 4)
         self.assertEqual(len(data["vias"]), 1)
         # the shortest copper path skips the stub at (5, 15)
@@ -180,6 +181,28 @@ class Sample(unittest.TestCase):
         self.assertEqual(heroes.problems(card, "card"), [])
         self.assertNotIn('class="pls"', card)                        # a card stays still once drawn
         self.assertNotIn('class="ld"', card)
+
+    def test_older_kicad_net_numbers_references_and_unangled_pads(self):
+        """KiCad 6-9 declare (net 1 "name") once and tracks carry only (net 1); before KiCad 8 the reference is an
+        fp_text. A pad with no angle is at 0 degrees whatever the footprint's rotation (KiCad stores pad angles whole)."""
+        import tempfile
+        board = """(kicad_pcb (version 20221018) (net 0 "") (net 1 "/CAN_H")
+  (footprint "Lib:H" (layer "F.Cu") (at 10 10 90)
+    (fp_text reference "J1" (at 0 0) (layer "F.SilkS"))
+    (pad "1" smd rect (at 0 0) (size 1 2) (layers "F.Cu") (net 1 "/CAN_H")))
+  (segment (start 10 10) (end 20 10) (width .25) (layer "F.Cu") (net 1))
+  (via (at 20 10) (size .6) (drill .3) (layers "F.Cu" "B.Cu") (net 1)))
+"""
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "old.kicad_pcb"
+            src.write_text(board, encoding="utf-8")
+            data = heroes.extract_pcb(src)
+        self.assertEqual(list(data["tracks"]), ["/CAN_H"])
+        fp = data["footprints"][0]
+        self.assertEqual(fp["ref"], "J1")
+        self.assertEqual(data["nets"][fp["pads"][0][6]], "/CAN_H")
+        self.assertEqual(fp["pads"][0][5], 0)
+        self.assertEqual(fp["pads"][0][8], 0)                        # plated
 
     def test_rendering_is_deterministic(self):
         self.assertEqual(sample("hero"), sample("hero"))

@@ -1136,15 +1136,18 @@ def motif_pcb(doc, data, box, mini, t0):
     board = "".join(poly([tf(p) for p in loop], True, d) for loop in data["outline"])
     holes = "".join(
         f'<circle cx="{n(tf(p[:2])[0], d)}" cy="{n(tf(p[:2])[1], d)}" r="{n(max(p[7] * sx / 2, 1), d)}"/>'
-        for f in data["footprints"] for p in f["pads"] if p[7] and p[2] <= p[7] + 0.05)       # bare (unplated) holes
+        for f in data["footprints"] for p in f["pads"] if p[8])                         # bare (unplated) holes
     out.append(f'<g class="bd tr"{_delay(t0)}><path class="sub" d="{board}"/><g class="hole">{holes}</g></g>')
     # the rest of the copper: every other track, faint, and the pads
     cu = {}
     for net, segs in data["tracks"].items():
         if net in hl:
             continue
+        by_w = {}
         for s in segs:
-            cu.setdefault(max(1.0, round(s[5] * sx * 2) / 2), []).append(poly([tf(s[:2]), tf(s[2:4])], d=d))
+            by_w.setdefault(max(1.0, round(s[5] * sx * 2) / 2), []).append(tuple(s))
+        for k, ss in by_w.items():                  # chained into polylines: fewer moves, a smaller file
+            cu.setdefault(k, []).extend(poly([tf(p) for p in ln], d=d) for ln in _pcb_paths(ss, ss[0][:2]))
     out.append(f'<g class="cu in"{_delay(t0 + 0.6)}>' + "".join(
         f'<path d="{"".join(v)}" stroke-width="{n(k)}"/>' for k, v in sorted(cu.items())) + "</g>")
     pads, drills = [], []
@@ -1152,7 +1155,7 @@ def motif_pcb(doc, data, box, mini, t0):
         for p in f["pads"]:
             X, Y = tf(p[:2])
             pw, ph = max(p[2] * sx, 1.2), max(p[3] * sx, 1.2)
-            if p[7] and p[2] <= p[7] + 0.05:
+            if p[8]:
                 continue
             if p[4] in ("circle", "oval") and abs(pw - ph) < 0.05:
                 pads.append(f'<circle cx="{n(X, d)}" cy="{n(Y, d)}" r="{n(pw / 2, d)}"/>')
@@ -1712,17 +1715,21 @@ def _chain(lines, tol=1e-3):
 
 def extract_pcb(source: Path) -> dict:
     """A KiCad board's drawing data (standard library only): the Edge.Cuts outline, every footprint's position, F.Fab
-    body lines and pads (with net), every track segment by net, and the vias, in board millimetres (x right, y down).
+    body lines and pads ([x, y, w, h, shape, angle, net, drill, unplated]), every track segment by net, and the vias,
+    in board millimetres (x right, y down).
     Front-side only: a banner shows the top of the board."""
     root = _sexp(source.read_text(encoding="utf-8"))
     r2 = lambda v: round(v, 2)
     nets = []
 
+    numbered = {c[1]: c[2] for c in _kids(root, "net") if len(c) > 2}   # KiCad 6-9 declare (net 3 "name") once
+
     def net_of(node):
         c = _kids(node, "net")
         if not c:
             return None
-        name = c[0][-1]                             # KiCad 10: (net "name"); older: (net 3 "name")
+        # KiCad 10: (net "name"); KiCad 6-9: (net 3 "name") on pads and (net 3) on tracks and vias
+        name = c[0][2] if len(c[0]) > 2 else numbered.get(c[0][1], c[0][1])
         if name not in nets:
             nets.append(name)
         return nets.index(name)
@@ -1738,7 +1745,8 @@ def extract_pcb(source: Path) -> dict:
         fx, fy, rot = float(at[1]), float(at[2]), float(at[3]) if len(at) > 3 else 0.0
         c, s = math.cos(math.radians(rot)), math.sin(math.radians(rot))
         place = lambda p: (fx + p[0] * c + p[1] * s, fy - p[0] * s + p[1] * c)
-        ref = next((p[2] for p in _kids(fp, "property") if p[1] == "Reference"), "")
+        ref = next((p[2] for p in _kids(fp, "property") if p[1] == "Reference"),       # KiCad 8 and later
+                   next((p[2] for p in _kids(fp, "fp_text") if p[1] == "reference"), ""))
         body = []
         for g in fp:
             if isinstance(g, list) and g[0] in ("fp_line", "fp_rect", "fp_arc", "fp_circle", "fp_poly") \
@@ -1748,11 +1756,12 @@ def extract_pcb(source: Path) -> dict:
         for p in _kids(fp, "pad"):
             pat = _kids(p, "at")[0]
             px, py = place((float(pat[1]), float(pat[2])))
-            ang = float(pat[3]) if len(pat) > 3 else rot
+            ang = float(pat[3]) if len(pat) > 3 else 0.0   # the pad's absolute angle; KiCad omits it when 0
             sz = _kids(p, "size")[0]
             dr = _kids(p, "drill")
             drill = float(dr[0][2] if dr[0][1] == "oval" else dr[0][1]) if dr and len(dr[0]) > 1 else 0
-            pads.append([r2(px), r2(py), r2(float(sz[1])), r2(float(sz[2])), p[3], r2(ang % 360), net_of(p), r2(drill)])
+            pads.append([r2(px), r2(py), r2(float(sz[1])), r2(float(sz[2])), p[3], r2(ang % 360), net_of(p), r2(drill),
+                         int(p[2] == "np_thru_hole")])
         footprints.append({"ref": ref, "at": [r2(fx), r2(fy), r2(rot)],
                            "body": [[[r2(x), r2(y)] for x, y in ln] for ln in _chain(body)], "pads": pads})
     tracks = {}
