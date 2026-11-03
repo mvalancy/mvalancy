@@ -11,7 +11,9 @@
 
 Every banner is an entry in ``tools/hero/banners.json``: its name (drawn large), a tagline, a palette, facts shown
 as chips, and a motif drawn from the project's real content where one exists (a CAD assembly traced from its STEP
-files by ``extract_cad.py``, its catalogue, its constants). Each banner is written twice, ``<out>-light.svg`` and
+files by ``extract_cad.py``, or built by the project's own CadQuery code and posed by ``extract_mesh.py``, its
+catalogue, its constants). A CAD motif may draw one group at several poses and play them back as a ``scan`` (a
+turret that sweeps, nods and holds); the rest pose is the still frame. Each banner is written twice, ``<out>-light.svg`` and
 ``<out>-dark.svg``, for a ``<picture>`` element whose ``prefers-color-scheme`` sources follow GitHub's theme.
 
 Rendering needs only the Python standard library and is deterministic: the same inputs give the same bytes. Text is
@@ -215,12 +217,53 @@ def _delay(t: float) -> str:
     return f' style="animation-delay:{n(t, 2)}s"'
 
 
+def _loops(part):
+    """A part's filled loops by role: ``regions`` {role: loops} (mesh extracts) or ``outlines`` with one ``role``."""
+    return part.get("regions") or {part.get("role", "body"): part["outlines"]}
+
+
+def _scan_css(doc, data, poses, delay):
+    """Keyframes that show one pose of the moving group at a time, following ``scan`` ([pose, seconds], ...); the
+    rest pose is the base style, so reduced motion (no animation) shows it still."""
+    scan = data["scan"]
+    period = sum(t for _, t in scan)
+    fade = 0.05
+    css = []
+    for k in poses:
+        stops, t = [], 0.0
+        for pose, dur in scan:
+            if pose == k:
+                stops.append((t, t + dur))
+            t += dur
+        if not stops:
+            continue
+        pts = []
+        for t0, t1 in stops:
+            pts += [(max(t0 - fade, 0), 0), (t0, 1), (t1, 1), (min(t1 + fade, period), 0)]
+        if pts[0][0] > 0:
+            pts.insert(0, (0, 0 if pts[0][1] == 0 or stops[0][0] > 0 else 1))
+        if stops[0][0] == 0:
+            pts[0] = (0, 1)
+        if stops[-1][1] >= period:
+            pts[-1] = (period, 1)
+        elif pts[-1][0] < period:
+            pts.append((period, 0))
+        frames = "".join(f"{n(100 * t / period, 2)}%{{opacity:{o}}}" for t, o in pts)
+        css.append(f"@keyframes ps{k}{{{frames}}}.ps{k}{{animation:ps{k} {n(period, 2)}s {n(delay, 2)}s linear infinite}}")
+    doc.css.append("".join(css))
+
+
 def motif_cad(doc, data, box, mini, t0):
-    """A real CAD assembly: each part's silhouette and visible edges, sliding in from its exploded position."""
+    """A real CAD assembly: each part's filled regions and visible edges, sliding in from its exploded position; a
+    group drawn at several poses (``pose`` on its parts) plays them back as a scan once everything is in place."""
     x, y, w, h = box
     if data.get("only_groups"):                     # e.g. one leg of a robot
         data = dict(data, parts=[p for p in data["parts"] if p.get("group") in data["only_groups"]], groups=None)
-    pts = [p for part in data["parts"] for loop in part["outlines"] for p in loop]
+    rest = data.get("rest_pose")
+    parts = data["parts"]
+    if mini or not data.get("scan"):                # cards stay still in the rest pose
+        parts = [p for p in parts if p.get("pose") in (None, rest)]
+    pts = [q for part in parts for loops in _loops(part).values() for loop in loops for q in loop]
     xs, ys = [p[0] for p in pts], [p[1] for p in pts]
     sx = min(w / (max(xs) - min(xs)), h / (max(ys) - min(ys))) * (0.9 if mini else 0.94)
     ox = x + (w - (max(xs) - min(xs)) * sx) / 2 - min(xs) * sx
@@ -232,32 +275,44 @@ def motif_cad(doc, data, box, mini, t0):
     min_px = 14.0 if mini else 3.0
     digits = 0 if mini else 1                       # cards are small: whole pixels are enough
     fills = {"shell": "var(--f1)", "plate": "var(--f2)", "lid": "var(--f3)", "body": "var(--f1)", "accent": "var(--a1)",
-             "dark": "var(--dk)"}
+             "dark": "var(--dk)", "glass": "var(--a2)"}
     sway = data.get("idle") == "balance" and not mini
     out = [f'<g class="cad{" sway" if sway else ""}"'
            + (f' style="transform-origin:{n(x + w / 2)}px {n(y + h)}px"' if sway else "") + ">"]
-    groups = data.get("groups") or list(dict.fromkeys(part.get("group", i) for i, part in enumerate(data["parts"])))
-    for i, part in enumerate(data["parts"]):
+    groups = data.get("groups") or list(dict.fromkeys(part.get("group", i) for i, part in enumerate(parts)))
+    g_last = 0
+    for i, part in enumerate(parts):
         lines = []
         for pl in part["lines"]:
             q = [tf(p) for p in pl]
             if sum(math.dist(a, b) for a, b in zip(q, q[1:])) >= min_px:
                 lines.append(poly(simplify(q, 0.8 if mini else 0.5), d=digits))
         g = groups.index(part.get("group", i))
+        g_last = max(g_last, g)
         fx, fy = part["from"][0] * sx, part["from"][1] * sx
         if g == 0:                                  # the first group is traced in by the scan line
             cls, style = "pt tr", _delay(t0)
         else:                                       # later groups slide in from where they start, one group at a time
             cls = "pt in"
             style = f' style="--fx:{n(fx)}px;--fy:{n(fy)}px;animation-delay:{n(t0 + 0.7 + 0.55 * (g - 1), 2)}s"'
-        out.append(f'<g class="{cls}"{style}><path class="sil" fill="{fills[part["role"]]}" '
-                   f'd="{"".join(poly(simplify([tf(p) for p in loop], 1.0) if mini else [tf(p) for p in loop], True, digits) for loop in part["outlines"])}"/>'
-                   f'<path class="ed" d="{"".join(lines)}"/></g>')
+        body = "".join(
+            f'<path class="sil{" gl" if role == "glass" else ""}" fill="{fills[role]}" d="'
+            + "".join(poly(simplify([tf(p) for p in loop], 1.0) if mini else [tf(p) for p in loop], True, digits)
+                      for loop in loops) + '"/>'
+            for role, loops in _loops(part).items()) + f'<path class="ed" d="{"".join(lines)}"/>'
+        k = part.get("pose")
+        if k is not None and not mini and data.get("scan"):
+            body = f'<g class="ps{k}"{"" if k == rest else " opacity=" + chr(34) + "0" + chr(34)}>{body}</g>'
+        out.append(f'<g class="{cls}"{style}>{body}</g>')
     out.append("</g>")
+    if data.get("scan") and not mini:               # the scan starts once every group has landed
+        _scan_css(doc, data, sorted({p["pose"] for p in parts if p.get("pose") is not None}),
+                  t0 + 0.7 + 0.55 * max(g_last - 1, 0) + 0.9 + data.get("scan_wait", 0.8))
     # a scan line sweeps the base as it is "traced", then idles
     out.append(f'<rect class="scan" x="{n(x)}" y="{n(y)}" width="3" height="{n(h)}" rx="1.5"{_delay(t0)}/>')
     doc.css.append(".cad .ed{fill:none;stroke:var(--edge);stroke-width:%s;stroke-linecap:round;stroke-linejoin:round;"
                    "opacity:.9}.cad .sil{stroke:var(--edge);stroke-width:%s;stroke-linejoin:round}"
+                   ".cad .gl{fill-opacity:.35}"
                    ".cad .pt.in{animation:slide .9s cubic-bezier(.2,.8,.2,1) both}"
                    "@keyframes slide{from{transform:translate(var(--fx),var(--fy));opacity:0}to{opacity:1}}"
                    ".cad .pt.tr{animation:trace 1.2s ease-out both}"
@@ -972,6 +1027,9 @@ def render(spec: dict, theme: str) -> str:
              f'<rect width="{W}" height="{H}" rx="{14 if mini else 18}" fill="url(#glow)"/>'
              f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="{14 if mini else 18}" fill="none" stroke="{pal["line"]}"/>')
     desc = spec.get("desc", "")
+    src = m.get("source") if isinstance(m.get("source"), dict) else {}
+    if desc and src.get("repo") and src.get("commit") and not spec.get("private"):
+        desc += f" Drawn from {src['repo']} at commit {src['commit'][:12]}."
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
             f'aria-label="{attr(label)}"><title>{escape(label)}</title>'
             + (f"<desc>{escape(desc)}</desc>" if desc else "")

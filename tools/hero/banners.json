@@ -8,14 +8,14 @@
    "out": "Valpatel/gyropup:docs/img/hero/gyropup",
    "tagline": "A research robot designed to balance on two wheel-legs, with a foam-ball turret: CAD and simulation in the open.",
    "facts": [
-    "58-part CAD assembly",
-    "five-bar legs · RS-04",
+    "five-bar leg v2 · two RS-04s",
+    "foam-ball turret",
     "MuJoCo simulation"
    ],
    "motif": {
-    "data": "motifs/gyropup.cad.json"
+    "data": "motifs/gyropup.mesh.json"
    },
-   "desc": "The whole standing robot drawn from its real STEP files (exports/asm_*.step) with hidden lines removed: the body is traced, the right and left legs slide in from the sides, the turret drops on top, and the model sways gently.",
+   "desc": "What is designed now, set as in docs/hero.jpg: the bench stand is traced, the foam-ball turret drops onto it on its compute plinth, leg v2 (the five-bar on two RS-04s, two links meeting at the wheel) slides in beside it, then the turret head scans left and right about its pan axis, nods about its tilt axis and holds a lock-on. Built by the project's own CadQuery code (cad/build_leg.py, cad/turret.py, cad/turret_stand.py) with hidden lines removed.",
    "themes": [
     "auto"
    ]
@@ -381,7 +381,7 @@
     "MIT"
    ],
    "motif": {
-    "data": "motifs/gyropup.cad.json"
+    "data": "motifs/gyropup.mesh.json"
    }
   },
   {
@@ -398,9 +398,9 @@
     "MIT"
    ],
    "motif": {
-    "data": "motifs/gyropup.cad.json",
+    "data": "motifs/gyropup.mesh.json",
     "only_groups": [
-     "leg_l"
+     "leg"
     ]
    }
   },
