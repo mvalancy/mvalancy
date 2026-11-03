@@ -973,7 +973,7 @@ def _sketch_title(doc, title, x0, base, s, adv, mini):
     upm, asc, desc, cap, xh = G["upm"], G["asc"], G["desc"], G["cap"], G["xheight"]
     tr = f"translate({n(x0)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
     g = G["weights"]["bold"]
-    t0, stagger, dur = (0.1, 0.03, 0.9) if mini else (0.1, 0.035, 1.1)
+    t0, stagger, dur = (0.05, 0.02, 0.7)                            # a quick flourish: the name reads within ~1 s
     t_end = t0 + 0.3 + stagger * (len(title) - 1) + dur            # the last letter is solid
     # graph paper behind the name, aligned to its left edge and baseline
     cell = 8 if mini else 12
@@ -1084,8 +1084,8 @@ def _card_text(doc, spec, title, W, H, adv, cap):
 
 
 def _hero_text(doc, spec, title, kind, W, H, adv, cap):
-    """A README hero or a profile spotlight card: the name grows from a drafting sketch, then the tagline and chips
-    fade in; the motif takes the space the name leaves."""
+    """A README hero or a profile spotlight card. On a hero the name grows from a quick drafting sketch and the tagline
+    fades in; a spotlight's name and tagline are still from the first frame. The motif takes the space the name leaves."""
     L = LAYOUT[kind]
     margin = L["margin"]
     upm = glyphs()["upm"]
@@ -1096,8 +1096,13 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
     doc.defs.append(f'<linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{n(adv, 0)}" y2="0">'
                     f'<stop offset="0" stop-color="var(--a1)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient>')
     out = []
-    letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, False)
-    out.append(letters_svg)
+    still = kind == "spot"      # spotlights sit below the fold and start late: their name is there from the first frame
+    if still:
+        sketch_css, t_name = "", 0.3
+        out.append(f'<g transform="{tr}" fill="url(#ng)">{doc.uses(title, "bold")}</g>')
+    else:
+        letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, False)
+        out.append(letters_svg)
     doc.defs.append(f'<clipPath id="nc" transform="{tr}">{doc.uses(title, "bold")}</clipPath>')
     out.append(f'<g clip-path="url(#nc)"><rect class="sh" x="{n(margin - 160)}" y="{n(margin - 10)}" width="120" '
                f'height="{n(fs + 20)}" fill="#fff" transform="skewX(-20)"/></g>')
@@ -1114,8 +1119,8 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
     lines, tsize = wrap(doc, spec.get("tagline", ""), "medium", L["tsize"], twidth, L["tlines"])
     y += 24 + tsize * cap
     for i, line in enumerate(lines):
-        out.append(f'<g class="tg in"{_delay(t_name * 0.6 + 0.1 * i)}>'
-                   f'{doc.text(line, "medium", tsize, margin, y + i * tsize * 1.3, fill="var(--ink)")}</g>')
+        text = doc.text(line, "medium", tsize, margin, y + i * tsize * 1.3, fill="var(--ink)")
+        out.append(text if still else f'<g class="tg in"{_delay(t_name * 0.6 + 0.1 * i)}>{text}</g>')
     y_text_end = y + (len(lines) - 1) * tsize * 1.3
     cs, ch = L["cs"], L["ch"]
     rows = [[]]
