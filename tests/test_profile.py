@@ -74,7 +74,11 @@ class ProfileUpdate(unittest.TestCase):
     def test_spotlight_keeps_the_owners_four_in_order_and_links_live_sites(self):
         spot = self.out.split("<!-- spotlight:start -->")[1].split("<!-- spotlight:end -->")[0]
         order = [spot.index(f"assets/spot/{n}-dark.svg") for n in ("cad-agent", "gyropup", "val-ark", "j501-agx-orin")]
-        self.assertEqual(order, sorted(order))                      # SPOT's order, whatever was pushed last
+        self.assertEqual(order, sorted(order))                      # SPOT's order
+        newest = [dict(r, commit=("2026-11-09T00:00:00Z", "late")) if r["full"] == "mvalancy/j501-agx-orin" else r
+                  for r in self.data["repos"]]                     # whatever was pushed last
+        late = update.spotlight(dict(self.data, repos=newest))
+        self.assertLess(late.index("cad-agent-dark.svg"), late.index("j501-agx-orin-dark.svg"))
         self.assertIn('<a href="https://gyropup.com"><img src="assets/spot/gyropup-dark.svg"', spot)   # one dark file
         self.assertIn('href="https://cad-agent.valpatel.com"', spot)
         self.assertIn('href="https://gyropup.com"', spot)
@@ -96,7 +100,7 @@ class ProfileUpdate(unittest.TestCase):
         self.assertNotIn("Merge pull request", spot)
         self.assertNotIn("body", spot)
         self.assertIn("Add fit check", spot)
-        self.assertTrue(all(len(line) < 600 for line in spot.splitlines()))
+        self.assertTrue(all(len(line) < 400 for line in spot.splitlines()))
         self.assertIn("…", spot)  # the long gyropup line is cut
 
     def test_activity_lists_recent_stable_releases(self):
