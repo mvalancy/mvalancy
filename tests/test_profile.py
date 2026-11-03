@@ -75,8 +75,8 @@ class ProfileUpdate(unittest.TestCase):
         spot = self.out.split("<!-- spotlight:start -->")[1].split("<!-- spotlight:end -->")[0]
         order = [spot.index(f"assets/spot/{n}-dark.svg") for n in ("cad-agent", "gyropup", "val-ark", "j501-agx-orin")]
         self.assertEqual(order, sorted(order))                      # SPOT's order, whatever was pushed last
-        self.assertEqual(spot.count("#gh-dark-mode-only"), 4)       # each card in both schemes
-        self.assertEqual(spot.count("#gh-light-mode-only"), 4)
+        self.assertEqual(spot.count('<picture><source media="(prefers-color-scheme: dark)"'), 4)   # both schemes
+        self.assertIn('-dark.svg"><a href="https://gyropup.com"><img src="assets/spot/gyropup-light.svg"', spot)
         self.assertIn('href="https://cad-agent.valpatel.com"', spot)
         self.assertIn('href="https://gyropup.com"', spot)
         self.assertIn("v/release/Valpatel/cad-agent", spot)  # has a release

@@ -150,11 +150,11 @@ def gather(get=fetch, now: str = None) -> dict:
     return out
 
 
-def themed(art: str, alt: str, width: str) -> str:
-    """Both schemes of an image inside a link. GitHub drops a <picture> wrapped in <a>, so use its own fragments:
-    ``#gh-dark-mode-only`` / ``#gh-light-mode-only`` show one file per GitHub theme, with no script, on every browser."""
-    return (f'<img src="{art}-dark.svg#gh-dark-mode-only" width="{width}" alt="{alt}">'
-            f'<img src="{art}-light.svg#gh-light-mode-only" width="{width}" alt="{alt}">')
+def themed(art: str, alt: str, width: str, link: str) -> str:
+    """Both schemes of a linked image. GitHub's sanitiser takes the <img> out of a <picture> wrapped in a link, so the
+    link goes inside: <picture><source dark><a><img light></a></picture>, which github.com's <themed-picture> honours."""
+    return (f'<picture><source media="(prefers-color-scheme: dark)" srcset="{art}-dark.svg"><a href="{link}">'
+            f'<img src="{art}-light.svg" width="{width}" alt="{alt}"></a></picture>')
 
 
 def badge(path: str, alt: str, query: str = "") -> str:
@@ -176,7 +176,7 @@ def spotlight(data: dict) -> str:
         stars = badge(f"stars/{full}", "stars", "&amp;label=%E2%98%85")
         new = f"<b>New</b> · {day(r['commit'][0])} · {html.escape(clean(r['commit'][1], 48), False)}" if r["commit"] else ""
         cells.append(f'<td width="50%" valign="top">\n'
-                     f'<a href="{s.get("link", r["url"])}">{themed(s["art"], html.escape(s["alt"]), "100%")}</a>\n'
+                     f'{themed(s["art"], html.escape(s["alt"]), "100%", s.get("link", r["url"]))}\n'
                      f'<br><a href="{r["url"]}">{live} {stars}</a>\n'
                      f'<br><sub>{new}</sub>\n</td>')
     rows = ["<tr>\n" + "\n".join(cells[i:i + 2]) + "\n</tr>" for i in range(0, len(cells), 2)]
