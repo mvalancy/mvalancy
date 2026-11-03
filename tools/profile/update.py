@@ -92,7 +92,7 @@ def last_commit(full: str, get=fetch):
     for c in get(f"/repos/{full}/commits?per_page=20") or []:
         msg = c["commit"]["message"]
         if len(c.get("parents", [])) == 1 and not msg.startswith("Merge "):
-            return c["commit"]["author"]["date"], clean(msg)
+            return c["commit"]["author"]["date"], clean(msg, 64)
     return None
 
 

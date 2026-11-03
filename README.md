@@ -11,26 +11,26 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <table>
 <tr>
 <td width="50%" valign="top">
-<a href="https://gyropup.com"><img src="assets/spot/gyropup.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
-<br><a href="https://github.com/Valpatel/gyropup"><img src="https://img.shields.io/github/last-commit/Valpatel/gyropup?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/Valpatel/gyropup?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 3 · Landing highlights recaptured at cb5c453 for the theme's source hashes</sub>
-</td>
-<td width="50%" valign="top">
 <a href="https://cad-agent.valpatel.com"><img src="assets/spot/cad-agent.svg" width="100%" alt="cad-agent: your one stop shop for agentic CAD."></a>
 <br><a href="https://github.com/Valpatel/cad-agent"><img src="https://img.shields.io/github/v/release/Valpatel/cad-agent?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/Valpatel/cad-agent?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 3 · v0.18.0 CHANGELOG: review fixes (M3 clamp torque drop, coverage snapshot, 775…</sub>
+<br><sub><b>New</b> · Nov 3 · v0.18.0 CHANGELOG: review fixes (M3 clamp torque drop…</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://gyropup.com"><img src="assets/spot/gyropup.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
+<br><a href="https://github.com/Valpatel/gyropup"><img src="https://img.shields.io/github/last-commit/Valpatel/gyropup?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/Valpatel/gyropup?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
+<br><sub><b>New</b> · Nov 3 · Landing highlights recaptured at cb5c453 for the theme's…</sub>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <a href="https://github.com/mvalancy/val-ark"><img src="assets/spot/val-ark.svg" width="100%" alt="val-ark: fills a disk with open-source tools, AI models and Wikipedia, then serves it offline."></a>
 <br><a href="https://github.com/mvalancy/val-ark"><img src="https://img.shields.io/github/v/release/mvalancy/val-ark?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/mvalancy/val-ark?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 2 · Release 0.1.18 — honest mirror/clone jobs (clone no longer fakes a download)…</sub>
+<br><sub><b>New</b> · Nov 2 · Release 0.1.18 — honest mirror/clone jobs (clone no longer…</sub>
 </td>
 <td width="50%" valign="top">
 <a href="https://github.com/mvalancy/j501-agx-orin"><img src="assets/spot/j501-agx-orin.svg" width="100%" alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."></a>
 <br><a href="https://github.com/mvalancy/j501-agx-orin"><img src="https://img.shields.io/github/last-commit/mvalancy/j501-agx-orin?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/mvalancy/j501-agx-orin?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Oct 31 · validate_review: a missing 3MF makes slicer_run false instead of crashing…</sub>
+<br><sub><b>New</b> · Oct 31 · validate_review: a missing 3MF makes slicer_run false instead…</sub>
 </td>
 </tr>
 </table>
