@@ -1,41 +1,73 @@
-# Matthew Valancy
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/hero/mvalancy-dark.svg">
+  <img src="assets/hero/mvalancy-light.svg" width="100%" alt="Matthew Valancy: full-stack hardware + software engineer, from PCBs, CAD and robots to edge AI and the tools behind them.">
+</picture>
 
-Owner at [Valpatel Software](https://valpatel.com) — autonomous platforms, edge AI, robotics simulation. Dublin, California.
+Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulation and AI. Before that I designed test equipment across land, sea, air and space, and agricultural robots (Tesla, Joby, Astra, Monarch). Dublin, California.
 
-Full-stack generalist. Designed test equipment across land/sea/air/space domains and agricultural robotics (Tesla, Joby, Astra, Monarch). Now building independent thinking machines.
+### Recently shipped
 
----
+<!-- spotlight:start -->
+<table>
+<tr>
+<td width="50%" valign="top">
+<a href="https://cad-agent.valpatel.com"><img src="assets/spot/cad-agent.svg" width="100%" alt="cad-agent: your one stop shop for agentic CAD."></a>
+<br><a href="https://github.com/Valpatel/cad-agent"><img src="https://img.shields.io/github/v/release/Valpatel/cad-agent?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/Valpatel/cad-agent?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
+<br><sub><b>New</b> · Nov 3 · v0.18.0 CHANGELOG: review fixes (M3 clamp…</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://gyropup.com"><img src="assets/spot/gyropup.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
+<br><a href="https://github.com/Valpatel/gyropup"><img src="https://img.shields.io/github/last-commit/Valpatel/gyropup?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/Valpatel/gyropup?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
+<br><sub><b>New</b> · Nov 3 · README: the animated banner is the only hero…</sub>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+<a href="https://github.com/mvalancy/val-ark"><img src="assets/spot/val-ark.svg" width="100%" alt="val-ark: fills a disk with open-source tools, AI models and Wikipedia, then serves it offline."></a>
+<br><a href="https://github.com/mvalancy/val-ark"><img src="https://img.shields.io/github/v/release/mvalancy/val-ark?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/mvalancy/val-ark?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
+<br><sub><b>New</b> · Nov 2 · Release 0.1.18 — honest mirror/clone jobs…</sub>
+</td>
+<td width="50%" valign="top">
+<a href="https://github.com/mvalancy/j501-agx-orin"><img src="assets/spot/j501-agx-orin.svg" width="100%" alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."></a>
+<br><a href="https://github.com/mvalancy/j501-agx-orin"><img src="https://img.shields.io/github/last-commit/mvalancy/j501-agx-orin?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/mvalancy/j501-agx-orin?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
+<br><sub><b>New</b> · Oct 31 · validate_review: a missing 3MF makes…</sub>
+</td>
+</tr>
+</table>
+<!-- spotlight:end -->
 
-### Valpatel Projects
+<!-- activity:start -->
+<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.18.0">cad-agent v0.18.0</a> Nov 3 · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.18">val-ark 0.1.18</a> Nov 2</sub></p>
+<!-- activity:end -->
 
-*Valpatel work is now closed source — initially open, consolidated behind one boundary as the
-Graphlings work surfaced emergent capabilities. Earlier releases remain under the terms they were issued.*
+### Valpatel
 
+<sub>Some Valpatel work is closed source. The open projects link to their code; the live ones link to where you can use them.</sub>
 
-<a href="https://github.com/Valpatel"><img src="https://raw.githubusercontent.com/Valpatel/.github/main/assets/tritium-command-center.png" width="49%" alt="Tritium"></a> <a href="https://github.com/Valpatel/app-soundbox"><img src="https://raw.githubusercontent.com/Valpatel/app-soundbox/main/docs/screenshots/radio.png" width="49%" alt="Sound Box"></a>
+<p>
+<a href="https://graphlings.net"><img src="assets/cards/graphlings.svg" width="32%" alt="Graphlings: crystal creatures that live, think and remember. Visit graphlings.net."></a>
+<a href="https://fight.graphlings.net/"><img src="assets/cards/club-fight.svg" width="32%" alt="Club Fight: an animal fighting game. Play it at fight.graphlings.net."></a>
+<a href="https://fight.graphlings.net/"><img src="assets/thumbs/club-fight.jpg" width="32%" alt="Club Fight gameplay: a herd of zebras against hippos on a floating platform."></a>
+<img src="assets/cards/tritium.svg" width="32%" alt="Tritium: every sensor fused into one operating picture, on your own hardware.">
+<img src="assets/thumbs/tritium.jpg" width="32%" alt="Tritium's map: tracked targets over city blocks.">
+<a href="https://github.com/Valpatel/app-soundbox"><img src="assets/cards/app-soundbox.svg" width="32%" alt="Sound Box: local AI music, sound effects and voice."></a>
+</p>
 
-[**Tritium**](https://github.com/Valpatel) — Unified operating picture for target tracking and identification. Fuses BLE, WiFi, camera, radar, SDR, LoRa mesh, and acoustic sensors into one tactical map. 23+ plugins, pluggable AI commander, ESP32 edge firmware with 66+ HALs. Neighborhood security is too important to be a SaaS.
+### Robots, hardware and servers
 
-[**Sound Box**](https://github.com/Valpatel/app-soundbox) — Local synthetic audio generation box for AI agents and humans. MusicGen, AudioGen, MAGNeT, Piper TTS.
+<p>
+<a href="https://github.com/mvalancy/moxie-robot-saver"><img src="assets/cards/moxie-robot-saver.svg" width="32%" alt="moxie-robot-saver: a self-hosted cloud replacement for Moxie robots."></a>
+<a href="https://github.com/mvalancy/pcb-agx-thor-can-breakout"><img src="assets/cards/pcb-agx-thor-can-breakout.svg" width="32%" alt="pcb-agx-thor-can-breakout: CAN breakout adapters for Jetson AGX Thor."></a>
+<img src="assets/cards/cyberpower-pdu.svg" width="32%" alt="CyberPower-PDU: self-hosted monitoring for CyberPower PDUs (private).">
+</p>
 
-[**Graphlings**](https://graphlings.net) — Autonomous digital creatures with layered AI consciousness. Peer-to-peer mesh, cross-platform. Coming 2026.
+### Teaching
 
-<a href="https://graphlings.net"><img src="https://raw.githubusercontent.com/mvalancy/mvalancy/main/graphlings-logo.png" width="64" alt="Graphlings"></a>
+<p>
+<a href="https://github.com/mvalancy/lesson-plans"><img src="assets/cards/lesson-plans.svg" width="32%" alt="lesson-plans: a free, self-paced Introduction to AI."></a>
+<a href="https://github.com/mvalancy/csci-40_f26_demos"><img src="assets/cards/csci-40_f26_demos.svg" width="32%" alt="csci-40_f26_demos: web apps and games built live in CSCI 40."></a>
+</p>
 
----
+<sub><b>Older projects</b> · [logitech_bcc950](https://github.com/mvalancy/logitech_bcc950) · [motor-ui-ddsm115-220](https://github.com/mvalancy/motor-ui-ddsm115-220) · [KiCAD_Libs](https://github.com/mvalancy/KiCAD_Libs) · [IC_Breakouts](https://github.com/mvalancy/IC_Breakouts) · [enphase-telegraf](https://github.com/mvalancy/enphase-telegraf) · [telegraf-slurm-cfg](https://github.com/mvalancy/telegraf-slurm-cfg) · [blender-nvidia-gb10](https://github.com/mvalancy/blender-nvidia-gb10) · [ovpn-connexa-python](https://github.com/mvalancy/ovpn-connexa-python) · [linux_tools](https://github.com/mvalancy/linux_tools) · <b>Archived</b> · [GraphDone](https://github.com/mvalancy/GraphDone) · [tritium-coder](https://github.com/mvalancy/tritium-coder) · <b>Forks</b> · [starnet-linux](https://github.com/mvalancy/starnet-linux) · [RCWS_v5](https://github.com/mvalancy/RCWS_v5) · [LucasCad](https://github.com/mvalancy/LucasCad)</sub>
 
-### Personal Projects
-
-[**CyberPower-PDU**](https://github.com/mvalancy/CyberPower-PDU) — Self-hosted PDU monitoring dashboard with MQTT and Home Assistant integration.
-
-<a href="https://github.com/mvalancy/CyberPower-PDU"><img src="https://github.com/mvalancy/mvalancy/raw/main/assets/cyberpower-pdu-dashboard.png" width="60%" alt="CyberPower PDU Dashboard"></a>
-
-[**val-ark**](https://github.com/mvalancy/val-ark) — Offline-first tool server. Fills a disk with open-source software, AI models, and reference content, then serves it over local wifi.
-
-[**blender-nvidia-gb10**](https://github.com/mvalancy/blender-nvidia-gb10) — Build Blender 5.0.1 from source on NVIDIA DGX Spark / GB10 (ARM64, CUDA 13).
-
-[**logitech_bcc950**](https://github.com/mvalancy/logitech_bcc950) — A talking eyeball on a stick. PTZ camera control scripts.
-
-[**motor-ui-ddsm115-220**](https://github.com/mvalancy/motor-ui-ddsm115-220) — Touch-friendly GUI for DDSM115/DDSM210 servo motors with real-time monitoring.
-
-<a href="https://github.com/mvalancy/motor-ui-ddsm115-220"><img src="https://raw.githubusercontent.com/mvalancy/motor-ui-ddsm115-220/main/docs/ui_control.png" width="60%" alt="Motor UI"></a>
+<sub>The cards are animated SVGs drawn by [`tools/hero`](tools/hero/heroes.py) from each project's own content (CAD from its source, real screenshots, catalogues); they hold still if your system asks for reduced motion. [`tools/profile`](tools/profile/update.py) refreshes "Recently shipped" daily from the public GitHub API.</sub>

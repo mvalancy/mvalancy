@@ -1,0 +1,28 @@
+name: profile
+# Refresh "Recently shipped" and the activity strip in README.md once a day from the public GitHub API
+# (tools/profile/update.py) and commit the result if anything changed. Nothing else is written.
+on:
+  schedule:
+    - cron: "17 13 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: profile
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Refresh the live sections
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/profile/update.py README.md
+      - name: Commit if changed
+        run: |
+          git diff --quiet -- README.md && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Refresh recently shipped" -- README.md
+          git push

@@ -1,0 +1,355 @@
+{
+ "banners": [
+  {
+   "name": "gyropup",
+   "title": "Gyropup",
+   "kind": "hero",
+   "palette": "gyropup",
+   "out": "Valpatel/gyropup:docs/img/hero/gyropup",
+   "tagline": "A research robot designed to balance on two wheel-legs, with a foam-ball turret: CAD and simulation in the open.",
+   "facts": [
+    "five-bar leg v2 · two RS-04s",
+    "foam-ball turret",
+    "MuJoCo simulation"
+   ],
+   "motif": {
+    "data": "motifs/gyropup.mesh.json"
+   },
+   "desc": "What is designed now, set as in docs/hero.jpg: the bench stand is traced, the foam-ball turret drops onto it on its compute plinth, leg v2 (the five-bar on two RS-04s, two links meeting at the wheel) slides in beside it, then the turret head scans left and right about its pan axis, nods about its tilt axis and holds a lock-on. Built by the project's own CadQuery code (cad/build_leg.py, cad/turret.py, cad/turret_stand.py) with hidden lines removed.",
+   "themes": [
+    "auto"
+   ]
+  },
+  {
+   "name": "val-ark",
+   "kind": "hero",
+   "palette": "teal",
+   "out": "mvalancy/val-ark:docs/img/hero/val-ark",
+   "tagline": "An offline-first mirror that fills a disk with open-source tools, AI models and Wikipedia, then serves it over local wifi.",
+   "facts": [
+    "50+ apps and tools",
+    "AI models",
+    "offline Wikipedia",
+    "Jetson · Linux · macOS · Windows"
+   ],
+   "motif": {
+    "data": "motifs/val-ark.catalog.json"
+   },
+   "desc": "A disk fills cell by cell from Val Ark's real catalogue (its 50 tool scripts, its extra-model table and its installer table), one of each kind first, as the Librarian plans it; then wifi arcs pulse as it serves the mirror to the local network."
+  },
+  {
+   "name": "j501-agx-orin",
+   "kind": "hero",
+   "palette": "orange",
+   "out": "mvalancy/j501-agx-orin:docs/img/hero/j501-agx-orin",
+   "tagline": "A 3D-printable enclosure for the Seeed reServer J501 carrier and an NVIDIA Jetson AGX Orin.",
+   "facts": [
+    "Rev 0.9 · release 0.9.1",
+    "18 printed parts",
+    "0 mm³ plastic overlap",
+    "every hole checked"
+   ],
+   "motif": {
+    "data": "motifs/j501-agx-orin.cad.json"
+   },
+   "desc": "The Rev 0.9 enclosure drawn from its real STEP files with hidden lines removed: the base is traced, the rear plate and front plate slide down into their channels, the side hatch slides in and the cover drops on."
+  },
+  {
+   "name": "logitech_bcc950",
+   "kind": "hero",
+   "palette": "violet",
+   "out": "mvalancy/logitech_bcc950:docs/img/hero/logitech_bcc950",
+   "tagline": "A talking eyeball on a stick: pan, tilt and zoom control for the Logitech BCC950 on Linux.",
+   "facts": [
+    "Python · C++ · shell",
+    "zoom 100–500",
+    "Whisper + Piper voice",
+    "MIT"
+   ],
+   "motif": {
+    "kind": "eye",
+    "pan": 1,
+    "zoom": [
+     100,
+     500
+    ],
+    "source": "src/python/bcc950/constants.py: ZOOM_MIN 100, ZOOM_MAX 500, pan and tilt speed -1..1"
+   },
+   "desc": "The BCC950 drawn as an eyeball on a stick: it pans and tilts around, its pupil zooms over the camera's 100 to 500 range, it blinks, and a speech bubble of level bars talks."
+  },
+  {
+   "name": "profile-mvalancy",
+   "title": "Matthew Valancy",
+   "kind": "hero",
+   "palette": "cyan",
+   "out": "assets/hero/mvalancy",
+   "tagline": "Full-stack hardware + software engineer: from PCBs, CAD and robots to edge AI and the tools behind them.",
+   "facts": [
+    "Valpatel Software",
+    "robotics · edge AI",
+    "Dublin, California"
+   ],
+   "motif": {
+    "kind": "stack"
+   },
+   "desc": "The stack I build across, bottom to top: PCBs and electronics, CAD and mechanical, motors and robots, firmware, edge AI, apps and UI. Signals pulse up and down the links between the layers."
+  },
+  {
+   "name": "profile-valpatel",
+   "title": "Valpatel",
+   "kind": "hero",
+   "palette": "cyan",
+   "out": "Valpatel/.github:assets/hero/valpatel",
+   "tagline": "Gamify the development and management of independent thinking machines.",
+   "facts": [
+    "robotics simulation",
+    "perception",
+    "edge AI"
+   ],
+   "motif": {
+    "kind": "crystal",
+    "seed": "valpatel"
+   },
+   "desc": "A crystal creature floats over a network of glowing nodes."
+  },
+  {
+   "name": "card-moxie-robot-saver",
+   "title": "moxie-robot-saver",
+   "kind": "card",
+   "palette": "cyan",
+   "out": "assets/cards/moxie-robot-saver",
+   "tagline": "A self-hosted cloud replacement for Moxie robots.",
+   "facts": [
+    "open source"
+   ],
+   "motif": {
+    "kind": "face"
+   }
+  },
+  {
+   "name": "card-pcb-agx-thor-can-breakout",
+   "title": "pcb-agx-thor-can-breakout",
+   "kind": "card",
+   "palette": "green",
+   "out": "assets/cards/pcb-agx-thor-can-breakout",
+   "tagline": "CAN breakout adapters for Jetson AGX Thor.",
+   "facts": [
+    "KiCad"
+   ],
+   "motif": {
+    "kind": "circuit",
+    "seed": "thor-can"
+   }
+  },
+  {
+   "name": "card-csci-40_f26_demos",
+   "title": "csci-40_f26_demos",
+   "kind": "card",
+   "palette": "violet",
+   "out": "assets/cards/csci-40_f26_demos",
+   "tagline": "Web apps and games built live in CSCI 40.",
+   "facts": [
+    "MIT"
+   ],
+   "motif": {
+    "data": "motifs/csci-40_f26_demos.lines.json"
+   }
+  },
+  {
+   "name": "card-lesson-plans",
+   "title": "lesson-plans",
+   "kind": "card",
+   "palette": "amber",
+   "out": "assets/cards/lesson-plans",
+   "tagline": "A free, self-paced Introduction to AI.",
+   "facts": [
+    "courses"
+   ],
+   "motif": {
+    "kind": "slides"
+   }
+  },
+  {
+   "name": "card-CyberPower-PDU",
+   "title": "CyberPower-PDU",
+   "kind": "card",
+   "palette": "amber",
+   "out": [
+    "assets/cards/cyberpower-pdu",
+    "Valpatel/.github:assets/cards/cyberpower-pdu"
+   ],
+   "tagline": "Self-hosted monitoring for CyberPower PDUs.",
+   "facts": [],
+   "motif": {
+    "kind": "chart",
+    "style": "bars"
+   },
+   "private": true
+  },
+  {
+   "name": "card-gyropup",
+   "title": "Gyropup",
+   "kind": "card",
+   "palette": "gyropup",
+   "out": [
+    "assets/cards/gyropup",
+    "Valpatel/.github:assets/cards/gyropup"
+   ],
+   "tagline": "Wheel-legged robot with a foam-ball turret.",
+   "facts": [
+    "MIT"
+   ],
+   "motif": {
+    "data": "motifs/gyropup.mesh.json"
+   }
+  },
+  {
+   "name": "card-cad-agent",
+   "title": "cad-agent",
+   "kind": "card",
+   "palette": "orange",
+   "out": [
+    "assets/cards/cad-agent",
+    "Valpatel/.github:assets/cards/cad-agent"
+   ],
+   "tagline": "Your one stop shop for agentic CAD.",
+   "facts": [
+    "MIT"
+   ],
+   "motif": {
+    "data": "motifs/cad-agent.mesh.json"
+   }
+  },
+  {
+   "name": "card-app-soundbox",
+   "title": "Sound Box",
+   "kind": "card",
+   "palette": "violet",
+   "out": [
+    "assets/cards/app-soundbox",
+    "Valpatel/.github:assets/cards/app-soundbox"
+   ],
+   "tagline": "Local AI music, sound effects and voice.",
+   "facts": [
+    "Python"
+   ],
+   "motif": {
+    "kind": "wave",
+    "seed": "soundbox"
+   }
+  },
+  {
+   "name": "card-graphlings",
+   "title": "Graphlings",
+   "kind": "card",
+   "palette": "cyan",
+   "out": [
+    "assets/cards/graphlings",
+    "Valpatel/.github:assets/cards/graphlings"
+   ],
+   "tagline": "Crystal creatures that live, think and remember.",
+   "facts": [],
+   "motif": {
+    "kind": "crystal",
+    "seed": "graphlings"
+   },
+   "private": true,
+   "cta": "Visit"
+  },
+  {
+   "name": "card-tritium",
+   "title": "Tritium",
+   "kind": "card",
+   "palette": "green",
+   "out": [
+    "assets/cards/tritium",
+    "Valpatel/.github:assets/cards/tritium"
+   ],
+   "tagline": "Every sensor fused into one operating picture.",
+   "facts": [],
+   "motif": {
+    "kind": "radar",
+    "seed": "tritium"
+   },
+   "private": true
+  },
+  {
+   "name": "card-club-fight",
+   "title": "Club Fight",
+   "kind": "card",
+   "palette": "rose",
+   "out": [
+    "assets/cards/club-fight",
+    "Valpatel/.github:assets/cards/club-fight"
+   ],
+   "tagline": "An animal fighting game.",
+   "facts": [],
+   "motif": {
+    "kind": "fight"
+   },
+   "private": true,
+   "cta": "Play",
+   "cta_icon": "play"
+  },
+  {
+   "name": "spot-cad-agent",
+   "title": "cad-agent",
+   "kind": "spot",
+   "palette": "orange",
+   "out": "assets/spot/cad-agent",
+   "tagline": "Your one stop shop for agentic CAD: self-improving AI for designing physical objects.",
+   "facts": [
+    "MIT",
+    "open source"
+   ],
+   "motif": {
+    "data": "motifs/cad-agent.mesh.json"
+   }
+  },
+  {
+   "name": "spot-gyropup",
+   "title": "Gyropup",
+   "kind": "spot",
+   "palette": "gyropup",
+   "out": "assets/spot/gyropup",
+   "tagline": "A research robot designed to balance on two wheel-legs, with a foam-ball turret.",
+   "facts": [
+    "five-bar leg v2",
+    "MuJoCo"
+   ],
+   "motif": {
+    "data": "motifs/gyropup.mesh.json"
+   }
+  },
+  {
+   "name": "spot-val-ark",
+   "title": "val-ark",
+   "kind": "spot",
+   "palette": "teal",
+   "out": "assets/spot/val-ark",
+   "tagline": "Fills a disk with open-source tools, AI models and Wikipedia, then serves it offline.",
+   "facts": [
+    "50+ tools",
+    "offline-first"
+   ],
+   "motif": {
+    "data": "motifs/val-ark.catalog.json"
+   }
+  },
+  {
+   "name": "spot-j501-agx-orin",
+   "title": "j501-agx-orin",
+   "kind": "spot",
+   "palette": "orange",
+   "out": "assets/spot/j501-agx-orin",
+   "tagline": "A 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin.",
+   "facts": [
+    "CadQuery",
+    "MIT"
+   ],
+   "motif": {
+    "data": "motifs/j501-agx-orin.cad.json"
+   }
+  }
+ ]
+}
