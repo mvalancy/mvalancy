@@ -13,31 +13,31 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <td width="50%" valign="top">
 <a href="https://cad-agent.valpatel.com"><img src="assets/spot/cad-agent.svg" width="100%" alt="cad-agent: your one stop shop for agentic CAD."></a>
 <br><a href="https://github.com/Valpatel/cad-agent"><img src="https://img.shields.io/github/v/release/Valpatel/cad-agent?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/Valpatel/cad-agent?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 3 · v0.18.0 CHANGELOG: review fixes (M3 clamp…</sub>
+<br><sub><b>New</b> · Nov 2 · v0.18.0 CHANGELOG: review fixes (M3 clamp…</sub>
 </td>
 <td width="50%" valign="top">
 <a href="https://gyropup.com"><img src="assets/spot/gyropup.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
 <br><a href="https://github.com/Valpatel/gyropup"><img src="https://img.shields.io/github/last-commit/Valpatel/gyropup?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/Valpatel/gyropup?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 3 · README: the animated banner is the only hero…</sub>
+<br><sub><b>New</b> · Nov 2 · README: the animated banner is the only hero…</sub>
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <a href="https://github.com/mvalancy/val-ark"><img src="assets/spot/val-ark.svg" width="100%" alt="val-ark: fills a disk with open-source tools, AI models and Wikipedia, then serves it offline."></a>
 <br><a href="https://github.com/mvalancy/val-ark"><img src="https://img.shields.io/github/v/release/mvalancy/val-ark?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/mvalancy/val-ark?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 2 · Release 0.1.18 — honest mirror/clone jobs…</sub>
+<br><sub><b>New</b> · Nov 1 · Release 0.1.18 — honest mirror/clone jobs…</sub>
 </td>
 <td width="50%" valign="top">
 <a href="https://github.com/mvalancy/j501-agx-orin"><img src="assets/spot/j501-agx-orin.svg" width="100%" alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."></a>
 <br><a href="https://github.com/mvalancy/j501-agx-orin"><img src="https://img.shields.io/github/last-commit/mvalancy/j501-agx-orin?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/mvalancy/j501-agx-orin?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Oct 31 · validate_review: a missing 3MF makes…</sub>
+<br><sub><b>New</b> · Oct 30 · validate_review: a missing 3MF makes…</sub>
 </td>
 </tr>
 </table>
 <!-- spotlight:end -->
 
 <!-- activity:start -->
-<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.18.0">cad-agent v0.18.0</a> Nov 3 · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.18">val-ark 0.1.18</a> Nov 2</sub></p>
+<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.18.0">cad-agent v0.18.0</a> Nov 2 · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.18">val-ark 0.1.18</a> Nov 1</sub></p>
 <!-- activity:end -->
 
 ### Valpatel
