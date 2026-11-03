@@ -7,13 +7,14 @@
     python3 tools/hero/heroes.py --check --repo mvalancy/val-ark=../val-ark        # and check it there
     python3 tools/hero/heroes.py --extract catalog --source ../val-ark --out tools/hero/motifs/val-ark.catalog.json
     python3 tools/hero/heroes.py --extract lines --source ../linux_tools/README.md --out tools/hero/motifs/x.lines.json
+    python3 tools/hero/heroes.py --extract pcb --source ../board/hw/board.kicad_pcb --out tools/hero/motifs/x.pcb.json
     python3 tools/hero/heroes.py --sample hero > /tmp/sample.svg          # render a throwaway banner (tests use this)
     python3 ../mvalancy/tools/hero/heroes.py --spec profile/hero.json       # from another repo: its own spec file
 
 Every banner is an entry in ``tools/hero/banners.json``: its name (drawn large), a tagline, a palette, facts shown
 as chips, and a motif drawn from the project's real content where one exists (a CAD assembly traced from its STEP
-files by ``extract_cad.py``, or built by the project's own CadQuery code and posed by ``extract_mesh.py``, its
-catalogue, its constants). A CAD motif may draw one group at several poses and play them back as a ``scan`` (a
+files by ``extract_cad.py``, or built by the project's own CadQuery code and posed by ``extract_mesh.py``, a KiCad
+board read by ``--extract pcb``, its catalogue, its constants). A CAD motif may draw one group at several poses and play them back as a ``scan`` (a
 turret that sweeps, nods and holds); the rest pose is the still frame. Each banner is written twice, ``<out>-light.svg`` and
 ``<out>-dark.svg``, for a ``<picture>`` element whose ``prefers-color-scheme`` sources follow GitHub's theme.
 
@@ -1045,10 +1046,208 @@ def motif_ops(doc, data, box, mini, t0):
     return "".join(out)
 
 
+def _pcb_paths(segs, start):
+    """Chain a net's track segments ([x1, y1, x2, y2, ...]) into polylines, walking out from the node nearest
+    ``start`` so a path drawn on reads as the copper being laid from that end."""
+    adj = {}
+    for k, s in enumerate(segs):
+        a, b = (s[0], s[1]), (s[2], s[3])
+        adj.setdefault(a, []).append((b, k))
+        adj.setdefault(b, []).append((a, k))
+    used, out = set(), []
+    nodes = sorted(adj, key=lambda p: math.dist(p, start))
+    for seed in nodes:
+        stack = [seed]
+        while stack:
+            p = stack.pop()
+            for q, k in adj[p]:
+                if k in used:
+                    continue
+                used.add(k)
+                line = [p, q]
+                while True:                     # extend while the walk is unbranched
+                    nxt = [(r, j) for r, j in adj[line[-1]] if j not in used]
+                    if len(nxt) != 1:
+                        break
+                    used.add(nxt[0][1])
+                    line.append(nxt[0][0])
+                out.append(line)
+                stack.append(line[-1])
+    return out
+
+
+def _pcb_route(segs, a, b):
+    """The shortest copper path between the nodes nearest points ``a`` and ``b`` (Dijkstra over track segments)."""
+    import heapq
+    adj = {}
+    for s in segs:
+        p, q = (s[0], s[1]), (s[2], s[3])
+        adj.setdefault(p, []).append(q)
+        adj.setdefault(q, []).append(p)
+    if not adj:
+        return []
+    src = min(adj, key=lambda p: math.dist(p, a))
+    dst = min(adj, key=lambda p: math.dist(p, b))
+    dist, prev, heap = {src: 0.0}, {}, [(0.0, src)]
+    while heap:
+        d, p = heapq.heappop(heap)
+        if p == dst:
+            break
+        if d > dist.get(p, 1e18):
+            continue
+        for q in adj[p]:
+            nd = d + math.dist(p, q)
+            if nd < dist.get(q, 1e18):
+                dist[q], prev[q] = nd, p
+                heapq.heappush(heap, (nd, q))
+    if dst not in dist:
+        return []
+    path = [dst]
+    while path[-1] != src:
+        path.append(prev[path[-1]])
+    return path[::-1]
+
+
+def motif_pcb(doc, data, box, mini, t0):
+    """A real KiCad board (``--extract pcb``): the outline is traced, pads and copper settle, the connectors named in
+    ``parts`` drop onto their footprints, the ``pairs`` (differential nets, e.g. CAN H and L) are drawn as copper from
+    their ``from`` part to their ``to`` part, and then signal pulses run along each pair, in step on both lines."""
+    x, y, w, h = box
+    labels = {} if mini else {r: (v, "top") if isinstance(v, str) else tuple(v) for r, v in (data.get("labels") or {}).items()}
+    lab = 17
+    sides = {s for _, s in labels.values()}
+    lw = max([doc.width(t, "medium", lab, 40) for t, s in labels.values() if s in ("left", "right")] or [0]) + 30
+    y, h = (y + lab + 12, h - lab - 12) if "top" in sides else (y, h)
+    h -= lab + 12 if "bottom" in sides else 0
+    x, w = (x + lw, w - lw) if "left" in sides else (x, w)
+    w -= lw if "right" in sides else 0
+    fps = {f["ref"]: f for f in data["footprints"]}
+    nets = data["nets"]
+    pts = [p for loop in data["outline"] for p in loop]
+    pts += [q for r in data.get("parts", []) for ln in fps[r]["body"] for q in ln]
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    sx = min(w / (max(xs) - min(xs)), h / (max(ys) - min(ys))) * (0.92 if mini else 0.96)
+    ox = x + (w - (max(xs) - min(xs)) * sx) / 2 - min(xs) * sx
+    oy = y + (h - (max(ys) - min(ys)) * sx) / 2 - min(ys) * sx
+    tf = lambda p: (ox + p[0] * sx, oy + p[1] * sx)
+    d = 0 if mini else 1
+    hl = {net: (i, k) for i, pr in enumerate(data.get("pairs", [])) for k, net in enumerate(pr["nets"])}
+    out = ['<g class="pcb">']
+    board = "".join(poly([tf(p) for p in loop], True, d) for loop in data["outline"])
+    holes = "".join(
+        f'<circle cx="{n(tf(p[:2])[0], d)}" cy="{n(tf(p[:2])[1], d)}" r="{n(max(p[7] * sx / 2, 1), d)}"/>'
+        for f in data["footprints"] for p in f["pads"] if p[7] and p[2] <= p[7] + 0.05)       # bare (unplated) holes
+    out.append(f'<g class="bd tr"{_delay(t0)}><path class="sub" d="{board}"/><g class="hole">{holes}</g></g>')
+    # the rest of the copper: every other track, faint, and the pads
+    cu = {}
+    for net, segs in data["tracks"].items():
+        if net in hl:
+            continue
+        for s in segs:
+            cu.setdefault(max(1.0, round(s[5] * sx * 2) / 2), []).append(poly([tf(s[:2]), tf(s[2:4])], d=d))
+    out.append(f'<g class="cu in"{_delay(t0 + 0.6)}>' + "".join(
+        f'<path d="{"".join(v)}" stroke-width="{n(k)}"/>' for k, v in sorted(cu.items())) + "</g>")
+    pads, drills = [], []
+    for f in data["footprints"]:
+        for p in f["pads"]:
+            X, Y = tf(p[:2])
+            pw, ph = max(p[2] * sx, 1.2), max(p[3] * sx, 1.2)
+            if p[7] and p[2] <= p[7] + 0.05:
+                continue
+            if p[4] in ("circle", "oval") and abs(pw - ph) < 0.05:
+                pads.append(f'<circle cx="{n(X, d)}" cy="{n(Y, d)}" r="{n(pw / 2, d)}"/>')
+            else:
+                rot = f' transform="rotate({n(-p[5])} {n(X, d)} {n(Y, d)})"' if p[5] % 180 else ""
+                if p[5] % 180 and p[5] % 90 == 0:                     # a quarter turn: swap instead of rotating
+                    pw, ph, rot = ph, pw, ""
+                rx = min(pw, ph) / 2 if p[4] == "oval" else min(pw, ph) * 0.2 if p[4] == "roundrect" else 0
+                pads.append(f'<rect x="{n(X - pw / 2, d)}" y="{n(Y - ph / 2, d)}" width="{n(pw, d)}" '
+                            f'height="{n(ph, d)}"' + (f' rx="{n(rx, d)}"' if rx else "") + f"{rot}/>")
+            if p[7] and not mini:
+                drills.append(f'<circle cx="{n(X, d)}" cy="{n(Y, d)}" r="{n(max(p[7] * sx / 2, .6), d)}"/>')
+    vias = "".join(f'<circle cx="{n(tf(v)[0], d)}" cy="{n(tf(v)[1], d)}" r="{n(max(v[2] * sx / 2, 1), d)}"/>'
+                   for v in data.get("vias", []))
+    out.append(f'<g class="pad in"{_delay(t0 + 0.8)}>{"".join(pads)}{vias}</g>')
+    if drills:
+        out.append(f'<g class="drl in"{_delay(t0 + 0.8)}>{"".join(drills)}</g>')
+    # the named parts drop onto the board, one after another
+    t_part = t0 + 1.2
+    for i, ref in enumerate(data.get("parts", [])):
+        f = fps[ref]
+        shut = lambda ln: len(ln) > 3 and ln[0] == ln[-1]
+        body = ('<path class="fl" d="' + "".join(poly([tf(p) for p in ln], True, d) for ln in f["body"] if shut(ln))
+                + '"/><path d="' + "".join(poly([tf(p) for p in ln], False, d) for ln in f["body"] if not shut(ln)) + '"/>')
+        cx = sum(p[0] for ln in f["body"] for p in ln) / max(1, sum(len(ln) for ln in f["body"]))
+        cy = sum(p[1] for ln in f["body"] for p in ln) / max(1, sum(len(ln) for ln in f["body"]))
+        bx, by = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
+        v = (cx - bx, cy - by)
+        k = 26 / max(math.hypot(*v), 1e-9)
+        out.append(f'<g class="part in" style="--fx:{n(v[0] * k)}px;--fy:{n(v[1] * k)}px;animation-delay:'
+                   f'{n(t_part + 0.25 * i, 2)}s">{body}</g>')
+    # the highlighted pairs: copper laid from the source part to the destination part, then pulses
+    t_cu = t_part + 0.25 * len(data.get("parts", [])) + 0.5
+    pulses = []
+    for i, pr in enumerate(data.get("pairs", [])):
+        a = fps[pr["from"]]["at"]
+        b = fps[pr["to"]]["at"]
+        a_pads = [p for p in fps[pr["from"]]["pads"] if p[6] is not None]
+        b_pads = [p for p in fps[pr["to"]]["pads"] if p[6] is not None]
+        for k, net in enumerate(pr["nets"]):
+            segs = [tuple(s) for s in data["tracks"].get(net, [])]
+            ni = nets.index(net)
+            pa = next((p[:2] for p in a_pads if p[6] == ni), a[:2])
+            pb = next((p[:2] for p in b_pads if p[6] == ni), b[:2])
+            col = "var(--a1)" if k == 0 else "var(--a2)"
+            wid = n(max(1.6, segs[0][5] * sx * 1.4) if segs else 2, 1)
+            for line in _pcb_paths(segs, pa):
+                out.append(f'<path class="can" d="{poly([tf(p) for p in line], d=d)}" pathLength="1" stroke="{col}" '
+                           f'stroke-width="{wid}"{_delay(t_cu + 0.35 * i + 0.1 * k)}/>')
+            route = _pcb_route(segs, pa, pb)
+            if len(route) > 1 and not mini:
+                pulses.append(f'<path class="pls" d="{poly([tf(p) for p in route], d=d)}" pathLength="1" '
+                              f'style="animation-delay:{n(t_cu + 1.6 + 1.3 * i, 2)}s"/>')
+    out += pulses
+    out.append("</g>")
+    t_lab = t_cu + 1.2
+    bx0, bx1 = tf((min(xs), 0))[0], tf((max(xs), 0))[0]
+    for i, (ref, (text, side)) in enumerate(labels.items()):   # name the parts beside the board
+        q = [tf(p) for ln in fps[ref]["body"] for p in ln]
+        qx, qy = [p[0] for p in q], [p[1] for p in q]
+        tw = doc.width(text, "medium", lab, 40)
+        if side in ("top", "bottom"):
+            X = (min(qx) + max(qx)) / 2 - tw / 2
+            Y = min(qy) - 10 if side == "top" else max(qy) + 10 + lab * 0.72
+            lead = ""
+        else:
+            Y = (min(qy) + max(qy)) / 2 + lab * 0.36
+            X = bx0 - 16 - tw if side == "left" else bx1 + 16
+            x0, x1 = (bx0 - 10, min(qx) - 3) if side == "left" else (max(qx) + 3, bx1 + 10)
+            lead = f'<path class="ld" d="M{n(x0)} {n(Y - lab * 0.36)}H{n(x1)}"/>'
+        out.append(f'<g class="in"{_delay(t_lab + 0.2 * i)}>{lead}'
+                   + doc.text(text, "medium", lab, X, Y, fill="var(--ink)", track=40) + "</g>")
+    doc.css.append(".pcb .sub{fill:var(--f2);stroke:var(--edge);stroke-width:1.6;stroke-linejoin:round}"
+                   ".pcb .hole{fill:var(--bg);stroke:var(--edge);stroke-width:1}"
+                   ".pcb .bd.tr{animation:trace 1.2s ease-out both}"
+                   "@keyframes trace{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}"
+                   ".pcb .cu path{fill:none;stroke:var(--a1);stroke-linecap:round;stroke-linejoin:round;opacity:.35}"
+                   ".pcb .pad{fill:var(--a1);opacity:.55}.pcb .drl{fill:var(--f2)}"
+                   ".ld{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:3 3}"
+                   ".pcb .part path{fill:none;stroke:var(--edge);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}"
+                   ".pcb .part .fl{fill:var(--f1);fill-opacity:.9}"
+                   ".pcb .part.in{animation:drop .8s cubic-bezier(.2,.8,.2,1) both}"
+                   "@keyframes drop{from{transform:translate(var(--fx),var(--fy));opacity:0}to{opacity:1}}"
+                   ".pcb .can{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;"
+                   "animation:lay 1.1s ease-in-out both}@keyframes lay{from{stroke-dashoffset:1}}"
+                   ".pcb .pls{fill:none;stroke:var(--edge);stroke-width:5;stroke-linecap:round;stroke-dasharray:.06 .94;stroke-dashoffset:1;"
+                   "opacity:0;animation:pls 2.6s linear infinite}"
+                   "@keyframes pls{0%{stroke-dashoffset:1;opacity:0}8%{opacity:1}85%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}")
+    return "".join(out)
+
+
 MOTIFS = {"cad": motif_cad, "stack": motif_stack, "ops": motif_ops, "catalog": motif_catalog, "eye": motif_eye, "face": motif_face, "terminal": motif_terminal,
           "circuit": motif_circuit, "chart": motif_chart, "dial": motif_dial, "slides": motif_slides,
           "linkage": motif_linkage, "wave": motif_wave, "crystal": motif_crystal, "radar": motif_radar,
-          "fight": motif_fight, "network": motif_network}
+          "fight": motif_fight, "network": motif_network, "pcb": motif_pcb}
 
 
 def motif_data(spec: dict) -> dict:
@@ -1194,7 +1393,7 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
     L = LAYOUT[kind]
     margin = L["margin"]
     upm = glyphs()["upm"]
-    fs = min(L["fs_max"], (W - margin * 2) / (adv / upm))
+    fs = min(spec.get("name_size", L["fs_max"]), L["fs_max"], (W - margin * 2) / (adv / upm))
     kick = spec.get("kicker")                           # a telemetry line over the name, valpatel.com style
     base = margin + (34 if kick else 0) + cap * fs + 4
     s = fs / upm
@@ -1422,6 +1621,163 @@ def extract_lines(readme: Path) -> dict:
     return {"kind": "terminal", "source": dict(_source(readme), file=readme.name), "lines": lines[:12]}
 
 
+def _sexp(text: str):
+    """A KiCad s-expression as nested lists of strings (quoted strings unquoted)."""
+    stack = [[]]
+    for m in re.finditer(r'\(|\)|"(?:[^"\\]|\\.)*"|[^\s()"]+', text):
+        t = m.group()
+        if t == "(":
+            stack.append([])
+        elif t == ")":
+            done = stack.pop()
+            stack[-1].append(done)
+        else:
+            stack[-1].append(re.sub(r"\\(.)", r"\1", t[1:-1]) if t[0] == '"' else t)
+    return stack[0][0]
+
+
+def _kids(node, name):
+    return [c for c in node if isinstance(c, list) and c and c[0] == name]
+
+
+def _xy(node, name):
+    c = _kids(node, name)
+    return (float(c[0][1]), float(c[0][2])) if c else None
+
+
+def _arc_pts(a, m, b, steps=12):
+    """Points along the circular arc through a, m, b."""
+    ax, ay = a
+    bx, by = b
+    mx, my = m
+    dd = 2 * (ax * (my - by) + mx * (by - ay) + bx * (ay - my))
+    if abs(dd) < 1e-12:
+        return [a, b]
+    ux = ((ax ** 2 + ay ** 2) * (my - by) + (mx ** 2 + my ** 2) * (by - ay) + (bx ** 2 + by ** 2) * (ay - my)) / dd
+    uy = ((ax ** 2 + ay ** 2) * (bx - mx) + (mx ** 2 + my ** 2) * (ax - bx) + (bx ** 2 + by ** 2) * (mx - ax)) / dd
+    r = math.dist((ux, uy), a)
+    t0, tm, t1 = (math.atan2(p[1] - uy, p[0] - ux) for p in (a, m, b))
+    span = (t1 - t0) % (2 * math.pi)
+    if (tm - t0) % (2 * math.pi) > span:          # the arc runs the other way round
+        span -= 2 * math.pi
+    return [(ux + r * math.cos(t0 + span * k / steps), uy + r * math.sin(t0 + span * k / steps)) for k in range(steps + 1)]
+
+
+def _shape_lines(g):
+    """Polylines (local mm) for one gr_*/fp_* graphic."""
+    kind = g[0].split("_", 1)[1]
+    if kind == "line":
+        return [[_xy(g, "start"), _xy(g, "end")]]
+    if kind == "rect":
+        (x0, y0), (x1, y1) = _xy(g, "start"), _xy(g, "end")
+        return [[(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)]]
+    if kind == "arc":
+        return [_arc_pts(_xy(g, "start"), _xy(g, "mid"), _xy(g, "end"))]
+    if kind == "circle":
+        c, e = _xy(g, "center"), _xy(g, "end")
+        r = math.dist(c, e)
+        return [[(c[0] + r * math.cos(2 * math.pi * k / 24), c[1] + r * math.sin(2 * math.pi * k / 24)) for k in range(25)]]
+    if kind == "poly":
+        pts = [(float(p[1]), float(p[2])) for p in _kids(_kids(g, "pts")[0], "xy")]
+        return [pts + pts[:1]]
+    return []
+
+
+def _chain(lines, tol=1e-3):
+    """Join polylines that share end points into as few polylines as possible (closed loops end where they start)."""
+    lines = [list(l) for l in lines if len(l) > 1]
+    out = []
+    while lines:
+        cur = lines.pop(0)
+        grown = True
+        while grown:
+            grown = False
+            for i, l in enumerate(lines):
+                if math.dist(cur[-1], l[0]) < tol:
+                    cur += l[1:]
+                elif math.dist(cur[-1], l[-1]) < tol:
+                    cur += l[::-1][1:]
+                elif math.dist(cur[0], l[-1]) < tol:
+                    cur = l[:-1] + cur
+                elif math.dist(cur[0], l[0]) < tol:
+                    cur = l[::-1][:-1] + cur
+                else:
+                    continue
+                lines.pop(i)
+                grown = True
+                break
+        out.append(cur)
+    return out
+
+
+def extract_pcb(source: Path) -> dict:
+    """A KiCad board's drawing data (standard library only): the Edge.Cuts outline, every footprint's position, F.Fab
+    body lines and pads (with net), every track segment by net, and the vias, in board millimetres (x right, y down).
+    Front-side only: a banner shows the top of the board."""
+    root = _sexp(source.read_text(encoding="utf-8"))
+    r2 = lambda v: round(v, 2)
+    nets = []
+
+    def net_of(node):
+        c = _kids(node, "net")
+        if not c:
+            return None
+        name = c[0][-1]                             # KiCad 10: (net "name"); older: (net 3 "name")
+        if name not in nets:
+            nets.append(name)
+        return nets.index(name)
+
+    edge = []
+    for g in root:
+        if isinstance(g, list) and g[0].startswith("gr_") and _kids(g, "layer") and _kids(g, "layer")[0][1] == "Edge.Cuts":
+            edge += _shape_lines(g)
+    outline = [[[r2(x), r2(y)] for x, y in loop] for loop in _chain(edge)]
+    footprints = []
+    for fp in _kids(root, "footprint"):
+        at = _kids(fp, "at")[0]
+        fx, fy, rot = float(at[1]), float(at[2]), float(at[3]) if len(at) > 3 else 0.0
+        c, s = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+        place = lambda p: (fx + p[0] * c + p[1] * s, fy - p[0] * s + p[1] * c)
+        ref = next((p[2] for p in _kids(fp, "property") if p[1] == "Reference"), "")
+        body = []
+        for g in fp:
+            if isinstance(g, list) and g[0] in ("fp_line", "fp_rect", "fp_arc", "fp_circle", "fp_poly") \
+                    and _kids(g, "layer") and _kids(g, "layer")[0][1] == "F.Fab":
+                body += [[place(p) for p in ln] for ln in _shape_lines(g)]
+        pads = []
+        for p in _kids(fp, "pad"):
+            pat = _kids(p, "at")[0]
+            px, py = place((float(pat[1]), float(pat[2])))
+            ang = float(pat[3]) if len(pat) > 3 else rot
+            sz = _kids(p, "size")[0]
+            dr = _kids(p, "drill")
+            drill = float(dr[0][2] if dr[0][1] == "oval" else dr[0][1]) if dr and len(dr[0]) > 1 else 0
+            pads.append([r2(px), r2(py), r2(float(sz[1])), r2(float(sz[2])), p[3], r2(ang % 360), net_of(p), r2(drill)])
+        footprints.append({"ref": ref, "at": [r2(fx), r2(fy), r2(rot)],
+                           "body": [[[r2(x), r2(y)] for x, y in ln] for ln in _chain(body)], "pads": pads})
+    tracks = {}
+    for seg in _kids(root, "segment") + _kids(root, "arc"):
+        i = net_of(seg)
+        lay = 0 if _kids(seg, "layer")[0][1] == "F.Cu" else 1
+        wd = float(_kids(seg, "width")[0][1])
+        pts = [_xy(seg, "start"), _xy(seg, "end")] if seg[0] == "segment" else \
+            _arc_pts(_xy(seg, "start"), _xy(seg, "mid"), _xy(seg, "end"), 6)
+        for a, b in zip(pts, pts[1:]):
+            tracks.setdefault(nets[i] if i is not None else "", []).append(
+                [r2(a[0]), r2(a[1]), r2(b[0]), r2(b[1]), lay, r2(wd)])
+    vias = [[r2(_xy(v, "at")[0]), r2(_xy(v, "at")[1]), r2(float(_kids(v, "size")[0][1]))] for v in _kids(root, "via")]
+    import subprocess
+    rel = subprocess.run(["git", "-C", str(source.parent), "ls-files", "--full-name", source.name],
+                         capture_output=True, text=True).stdout.strip() or source.name
+    return {"kind": "pcb", "source": dict(_source(source), file=rel, sha256=_sha256(source)), "nets": nets,
+            "outline": outline, "footprints": footprints, "tracks": tracks, "vias": vias}
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 # ------------------------------------------------------------------------------------------------ CLI
 
 def banners(path: Path = None) -> list:
@@ -1455,7 +1811,7 @@ def main(argv=None) -> int:
                     help="a checkout of another repo whose banners to write or check")
     ap.add_argument("--spec", type=Path, help="render the banners in this file instead of banners.json; "
                     "bare out paths are then relative to the current directory (a profile repo's own workflow)")
-    ap.add_argument("--extract", choices=["catalog", "lines"])
+    ap.add_argument("--extract", choices=["catalog", "lines", "pcb"])
     ap.add_argument("--source", type=Path)
     ap.add_argument("--out", type=Path)
     ap.add_argument("--sample", choices=["hero", "card"], help="print a sample banner to stdout")
@@ -1465,7 +1821,7 @@ def main(argv=None) -> int:
         sys.stdout.write(render(dict(SAMPLE, kind=a.sample), a.theme))
         return 0
     if a.extract:
-        data = extract_catalog(a.source) if a.extract == "catalog" else extract_lines(a.source)
+        data = {"catalog": extract_catalog, "lines": extract_lines, "pcb": extract_pcb}[a.extract](a.source)
         a.out.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
         print(f"wrote {a.out}")
         return 0

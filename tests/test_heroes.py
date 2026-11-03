@@ -120,6 +120,67 @@ class Sample(unittest.TestCase):
             self.assertEqual(heroes.problems(text, size), [])
             self.assertEqual(text.count('stroke-linecap="round" stroke-linejoin="round"/></g>'), 2)  # one per mark
 
+    BOARD = """(kicad_pcb (version 20250000)
+  (net "/CAN_H") (net "/CAN_L")
+  (gr_line (start 0 0) (end 40 0) (layer "Edge.Cuts"))
+  (gr_line (start 40 0) (end 40 30) (layer "Edge.Cuts"))
+  (gr_arc (start 40 30) (mid 39.12 32.12) (end 37 33) (layer "Edge.Cuts"))
+  (gr_line (start 37 33) (end 0 33) (layer "Edge.Cuts"))
+  (gr_line (start 0 33) (end 0 0) (layer "Edge.Cuts"))
+  (footprint "Lib:Header" (layer "F.Cu") (at 10 25)
+    (property "Reference" "J1" (at 0 -2 0) (layer "F.SilkS"))
+    (fp_rect (start -3 -2) (end 3 2) (layer "F.Fab"))
+    (pad "1" smd rect (at -1 0) (size 1 2) (layers "F.Cu") (net "/CAN_H"))
+    (pad "2" smd rect (at 1 0) (size 1 2) (layers "F.Cu") (net "/CAN_L")))
+  (footprint "Lib:DE9" (layer "F.Cu") (at 30 5 90)
+    (property "Reference" "J2" (at 0 -2 90) (layer "F.SilkS"))
+    (fp_line (start -4 -3) (end 4 -3) (layer "F.Fab"))
+    (fp_line (start 4 -3) (end 4 3) (layer "F.Fab"))
+    (pad "7" thru_hole circle (at 1 0 90) (size 1.6 1.6) (drill 1) (layers "*.Cu") (net "/CAN_H"))
+    (pad "2" thru_hole circle (at -1 0 90) (size 1.6 1.6) (drill 1) (layers "*.Cu") (net "/CAN_L"))
+    (pad "" np_thru_hole circle (at 0 3 90) (size 3.2 3.2) (drill 3.2) (layers "*.Cu")))
+  (segment (start 9 25) (end 9 15) (width .25) (layer "F.Cu") (net "/CAN_H"))
+  (segment (start 9 15) (end 30 15) (width .25) (layer "F.Cu") (net "/CAN_H"))
+  (segment (start 30 15) (end 30 4) (width .25) (layer "B.Cu") (net "/CAN_H"))
+  (segment (start 9 15) (end 5 15) (width .25) (layer "F.Cu") (net "/CAN_H"))
+  (segment (start 11 25) (end 30 6) (width .25) (layer "F.Cu") (net "/CAN_L"))
+  (via (at 30 15) (size .6) (drill .3) (layers "F.Cu" "B.Cu") (net "/CAN_H")))
+"""
+
+    def test_a_kicad_board_extracts_and_draws_as_a_pcb_motif(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "b.kicad_pcb"
+            src.write_text(self.BOARD, encoding="utf-8")
+            data = heroes.extract_pcb(src)
+        self.assertEqual(len(data["outline"]), 1)                    # four lines and an arc chain into one loop
+        loop = data["outline"][0]
+        self.assertEqual(loop[0], loop[-1])
+        self.assertTrue(any(abs(x - 39.12) < .2 and abs(y - 32.12) < .2 for x, y in loop))   # the arc is sampled
+        fps = {f["ref"]: f for f in data["footprints"]}
+        # J2 is turned 90 degrees: its local (1, 0) pad lands at board (30, 4), its (-1, 0) pad at (30, 6)
+        self.assertEqual([fps["J2"]["pads"][0][:2], fps["J2"]["pads"][1][:2]], [[30, 4], [30, 6]])
+        self.assertEqual(data["nets"][fps["J2"]["pads"][0][6]], "/CAN_H")
+        self.assertIsNone(fps["J2"]["pads"][2][6])                   # the unplated hole has no net
+        self.assertEqual(len(data["tracks"]["/CAN_H"]), 4)
+        self.assertEqual(len(data["vias"]), 1)
+        # the shortest copper path skips the stub at (5, 15)
+        route = heroes._pcb_route([tuple(s) for s in data["tracks"]["/CAN_H"]], (9, 25), (30, 4))
+        self.assertEqual(route, [(9, 25), (9, 15), (30, 15), (30, 4)])
+        motif = dict(data, parts=["J1", "J2"], pairs=[{"nets": ["/CAN_H", "/CAN_L"], "from": "J1", "to": "J2"}],
+                     labels={"J2": ["CAN0", "top"], "J1": ["J1", "left"]})
+        hero = sample("hero", motif=motif)
+        self.assertEqual(heroes.problems(hero, "hero"), [])
+        self.assertEqual(hero.count('class="pls"'), 2)               # a pulse on each line of the pair
+        self.assertIn(".pcb .pls{fill:none;stroke:var(--edge)".replace("var(--edge)", heroes.palette("violet", "dark")["edge"]), hero)
+        self.assertIn("opacity:0;animation:pls", hero)               # pulses are hidden in the still frame
+        self.assertIn("stroke-dashoffset:0;animation:lay", hero)     # the pairs are fully drawn in the still frame
+        self.assertIn('class="ld"', hero)                            # the left label has a leader line
+        card = sample("card", motif=motif)
+        self.assertEqual(heroes.problems(card, "card"), [])
+        self.assertNotIn('class="pls"', card)                        # a card stays still once drawn
+        self.assertNotIn('class="ld"', card)
+
     def test_rendering_is_deterministic(self):
         self.assertEqual(sample("hero"), sample("hero"))
         self.assertEqual(sample("card", "light"), sample("card", "light"))
