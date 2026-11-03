@@ -78,6 +78,62 @@
    "desc": "The BCC950 drawn as an eyeball on a stick: it pans and tilts around, its pupil zooms over the camera's 100 to 500 range, it blinks, and a speech bubble of level bars talks."
   },
   {
+   "name": "pcb-agx-thor-can-breakout",
+   "title": "Thor CAN breakout",
+   "name_size": 72,
+   "kind": "hero",
+   "palette": "green",
+   "out": "mvalancy/pcb-agx-thor-can-breakout:docs/img/hero/pcb-agx-thor-can-breakout",
+   "tagline": "Protected CAN breakout boards and printed housings for NVIDIA Jetson AGX Thor, in KiCad and CadQuery.",
+   "facts": [
+    "J47 → 2 × DE9",
+    "SM712 TVS per port",
+    "termination jumpers",
+    "A1 prototype"
+   ],
+   "motif": {
+    "data": "motifs/pcb-agx-thor-can-breakout.pcb.json",
+    "parts": [
+     "J1",
+     "J2",
+     "J3"
+    ],
+    "pairs": [
+     {
+      "nets": [
+       "/FSI_CAN0_H",
+       "/FSI_CAN0_L"
+      ],
+      "from": "J1",
+      "to": "J2"
+     },
+     {
+      "nets": [
+       "/FSI_CAN1_H",
+       "/FSI_CAN1_L"
+      ],
+      "from": "J1",
+      "to": "J3"
+     }
+    ],
+    "labels": {
+     "J2": [
+      "CAN0",
+      "top"
+     ],
+     "J3": [
+      "CAN1",
+      "top"
+     ],
+     "J1": [
+      "THOR J47",
+      "left"
+     ]
+    }
+   },
+   "desc": "The two-port board drawn from its KiCad layout: the outline is traced, pads and copper settle, the J47 header and both DE9 ports drop on, the CAN0 and CAN1 pairs are laid from the header to their ports, and pulses run along each pair, high and low in step."
+  },
+  {
    "name": "profile-mvalancy",
    "title": "Matthew Valancy",
    "kind": "hero",
@@ -119,8 +175,30 @@
     "KiCad"
    ],
    "motif": {
-    "kind": "circuit",
-    "seed": "thor-can"
+    "data": "motifs/pcb-agx-thor-can-breakout.pcb.json",
+    "parts": [
+     "J1",
+     "J2",
+     "J3"
+    ],
+    "pairs": [
+     {
+      "nets": [
+       "/FSI_CAN0_H",
+       "/FSI_CAN0_L"
+      ],
+      "from": "J1",
+      "to": "J2"
+     },
+     {
+      "nets": [
+       "/FSI_CAN1_H",
+       "/FSI_CAN1_L"
+      ],
+      "from": "J1",
+      "to": "J3"
+     }
+    ]
    }
   },
   {
