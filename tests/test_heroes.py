@@ -58,6 +58,31 @@ class Sample(unittest.TestCase):
         self.assertEqual(heroes.problems(text, "hero"), [])
         self.assertIn('class="pulse', text)
 
+    def test_the_ops_board_with_a_kicker_and_hud(self):
+        motif = {"kind": "ops", "nodes": [["ZONE %d" % i, "STATUS", "a3" if i % 2 else "a4"] for i in range(8)],
+                 "log": ["11-02 [cad-agent] released v0.18.0", "11-03 [gyropup] leg v2", "x" * 60]}
+        for theme in ("light", "dark", "auto"):
+            text = heroes.render(dict(heroes.SAMPLE, kind="hero", palette="valpatel", hud=True, kicker="Autonomous systems",
+                                      motif=motif), theme)
+            self.assertEqual(heroes.problems(text, "hero"), [])
+            self.assertEqual(text.count('class="lg"'), 3)              # every log line, shown in the still frame
+            self.assertIn('class="led"', text)                          # the LIVE and kicker lights
+        self.assertIn('[fill="#a35a00"]{fill:#ffb000}', text)           # the amber accent follows the dark scheme
+        self.assertNotIn("--a3:", sample("card", "auto"))               # no unused accent variables
+
+    def test_a_spec_file_writes_beside_the_caller(self):
+        import json, os, tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = Path(tmp) / "hero.json"
+            spec.write_text(json.dumps({"banners": [dict(heroes.SAMPLE, kind="hero", out="out/b")]}))
+            cwd = os.getcwd()
+            os.chdir(tmp)
+            try:
+                self.assertEqual(heroes.main(["--spec", str(spec)]), 0)
+            finally:
+                os.chdir(cwd)
+            self.assertTrue((Path(tmp) / "out/b-dark.svg").exists() and (Path(tmp) / "out/b-light.svg").exists())
+
     def test_a_posed_group_scans_and_rests_still_under_reduced_motion(self):
         square = lambda x0: {"plate": [[[x0, 0], [x0 + 10, 0], [x0 + 10, 10], [x0, 10]]]}
         parts = [{"name": "base", "group": "base", "from": [0, 0], "regions": dict(square(0), glass=square(5)["plate"]),

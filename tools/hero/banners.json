@@ -95,24 +95,6 @@
    "desc": "The stack I build across, bottom to top: PCBs and electronics, CAD and mechanical, motors and robots, firmware, edge AI, apps and UI. Signals pulse up and down the links between the layers."
   },
   {
-   "name": "profile-valpatel",
-   "title": "Valpatel",
-   "kind": "hero",
-   "palette": "cyan",
-   "out": "Valpatel/.github:assets/hero/valpatel",
-   "tagline": "Gamify the development and management of independent thinking machines.",
-   "facts": [
-    "robotics simulation",
-    "perception",
-    "edge AI"
-   ],
-   "motif": {
-    "kind": "crystal",
-    "seed": "valpatel"
-   },
-   "desc": "A crystal creature floats over a network of glowing nodes."
-  },
-  {
    "name": "card-moxie-robot-saver",
    "title": "moxie-robot-saver",
    "kind": "card",
@@ -170,6 +152,34 @@
    }
   },
   {
+   "name": "card-val-ark",
+   "title": "val-ark",
+   "kind": "card",
+   "palette": "teal",
+   "out": "Valpatel/.github:assets/cards/val-ark",
+   "tagline": "Open-source tools, AI models and Wikipedia, offline.",
+   "facts": [
+    "shell · Node"
+   ],
+   "motif": {
+    "data": "motifs/val-ark.catalog.json"
+   }
+  },
+  {
+   "name": "card-j501-agx-orin",
+   "title": "j501-agx-orin",
+   "kind": "card",
+   "palette": "orange",
+   "out": "Valpatel/.github:assets/cards/j501-agx-orin",
+   "tagline": "Printable enclosure for the J501 carrier and Jetson AGX Orin.",
+   "facts": [
+    "CadQuery"
+   ],
+   "motif": {
+    "data": "motifs/j501-agx-orin.cad.json"
+   }
+  },
+  {
    "name": "card-CyberPower-PDU",
    "title": "CyberPower-PDU",
    "kind": "card",
@@ -191,10 +201,7 @@
    "title": "Gyropup",
    "kind": "card",
    "palette": "gyropup",
-   "out": [
-    "assets/cards/gyropup",
-    "Valpatel/.github:assets/cards/gyropup"
-   ],
+   "out": "assets/cards/gyropup",
    "tagline": "Wheel-legged robot with a foam-ball turret.",
    "facts": [
     "MIT"
@@ -208,10 +215,7 @@
    "title": "cad-agent",
    "kind": "card",
    "palette": "orange",
-   "out": [
-    "assets/cards/cad-agent",
-    "Valpatel/.github:assets/cards/cad-agent"
-   ],
+   "out": "assets/cards/cad-agent",
    "tagline": "Your one stop shop for agentic CAD.",
    "facts": [
     "MIT"
@@ -296,7 +300,10 @@
    "title": "cad-agent",
    "kind": "spot",
    "palette": "orange",
-   "out": "assets/spot/cad-agent",
+   "out": [
+    "assets/spot/cad-agent",
+    "Valpatel/.github:assets/spot/cad-agent"
+   ],
    "tagline": "Your one stop shop for agentic CAD: self-improving AI for designing physical objects.",
    "facts": [
     "MIT",
@@ -304,14 +311,18 @@
    ],
    "motif": {
     "data": "motifs/cad-agent.mesh.json"
-   }
+   },
+   "cta": "Install"
   },
   {
    "name": "spot-gyropup",
    "title": "Gyropup",
    "kind": "spot",
    "palette": "gyropup",
-   "out": "assets/spot/gyropup",
+   "out": [
+    "assets/spot/gyropup",
+    "Valpatel/.github:assets/spot/gyropup"
+   ],
    "tagline": "A research robot designed to balance on two wheel-legs, with a foam-ball turret.",
    "facts": [
     "five-bar leg v2",
@@ -319,7 +330,8 @@
    ],
    "motif": {
     "data": "motifs/gyropup.mesh.json"
-   }
+   },
+   "cta": "Visit"
   },
   {
    "name": "spot-val-ark",
@@ -350,6 +362,40 @@
    "motif": {
     "data": "motifs/j501-agx-orin.cad.json"
    }
+  },
+  {
+   "name": "spot-graphlings",
+   "title": "Graphlings",
+   "kind": "spot",
+   "palette": "cyan",
+   "out": "Valpatel/.github:assets/spot/graphlings",
+   "tagline": "Crystal creatures that live, think and remember across connected worlds.",
+   "facts": [
+    "AI creatures"
+   ],
+   "motif": {
+    "kind": "crystal",
+    "seed": "graphlings"
+   },
+   "private": true,
+   "cta": "Visit"
+  },
+  {
+   "name": "spot-club-fight",
+   "title": "Club Fight",
+   "kind": "spot",
+   "palette": "rose",
+   "out": "Valpatel/.github:assets/spot/club-fight",
+   "tagline": "Who would win? Pick two animals, pick how many, and watch the fight.",
+   "facts": [
+    "land, sea & air"
+   ],
+   "motif": {
+    "kind": "fight"
+   },
+   "private": true,
+   "cta": "Play",
+   "cta_icon": "play"
   }
  ]
 }

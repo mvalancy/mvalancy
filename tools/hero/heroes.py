@@ -8,6 +8,7 @@
     python3 tools/hero/heroes.py --extract catalog --source ../val-ark --out tools/hero/motifs/val-ark.catalog.json
     python3 tools/hero/heroes.py --extract lines --source ../linux_tools/README.md --out tools/hero/motifs/x.lines.json
     python3 tools/hero/heroes.py --sample hero > /tmp/sample.svg          # render a throwaway banner (tests use this)
+    python3 ../mvalancy/tools/hero/heroes.py --spec profile/hero.json       # from another repo: its own spec file
 
 Every banner is an entry in ``tools/hero/banners.json``: its name (drawn large), a tagline, a palette, facts shown
 as chips, and a motif drawn from the project's real content where one exists (a CAD assembly traced from its STEP
@@ -62,6 +63,12 @@ ACCENTS = {  # name: (light a1, light a2, dark a1, dark a2)
     "cyan": ("#0e7490", "#4338ca", "#22d3ee", "#818cf8"),
     "lime": ("#4d7c0f", "#0f766e", "#a3e635", "#34d399"),
     "gyropup": ("#bd3a12", "#287d8d", "#ff7a45", "#5cc8d6"),     # gyropup.com's --orange and --cyan
+    "valpatel": ("#007f8c", "#00805a", "#00f0ff", "#05ffa1"),    # valpatel.com's cyan and signal green
+}
+SURFACES = {  # palettes that bring their own surfaces and extra accents (a3 amber, a4 magenta), by theme
+    "valpatel": {"dark": {"bg": "#05070a", "bg2": "#0a1016", "line": "#16232c", "edge": "#d8f6ff", "glow": ".18",
+                          "a3": "#ffb000", "a4": "#ff2bd6"},
+                 "light": {"bg": "#ffffff", "bg2": "#eef7f8", "edge": "#0b2530", "a3": "#a35a00", "a4": "#b0127f"}},
 }
 
 
@@ -69,6 +76,8 @@ def palette(name: str, theme: str) -> dict:
     a = ACCENTS[name]
     p = dict(BASE[theme])
     p["a1"], p["a2"] = (a[0], a[1]) if theme == "light" else (a[2], a[3])
+    p["a3"], p["a4"] = p["a1"], p["a2"]                  # only some palettes have a third and fourth accent
+    p.update(SURFACES.get(name, {}).get(theme, {}))
     return p
 
 
@@ -165,12 +174,12 @@ class Doc:
         self.ids += 1
         return f"{stem}{self.ids}"
 
-    def width(self, text: str, weight: str, size: float) -> float:
+    def width(self, text: str, weight: str, size: float, track: float = 0) -> float:
         g = glyphs()["weights"][weight]
-        return sum(g.get(c, g[" "])[0] for c in text) * size / glyphs()["upm"]
+        return sum(g.get(c, g[" "])[0] + track for c in text) * size / glyphs()["upm"]
 
-    def uses(self, text: str, weight: str, extra=None) -> str:
-        """``<use>`` elements for ``text`` in font units, from x = 0."""
+    def uses(self, text: str, weight: str, extra=None, track: float = 0) -> str:
+        """``<use>`` elements for ``text`` in font units, from x = 0; ``track`` adds letter spacing (font units)."""
         g = glyphs()["weights"][weight]
         x, out = 0, []
         for i, c in enumerate(text):
@@ -180,14 +189,15 @@ class Doc:
                 self.used[gid] = d
                 more = extra(i) if extra else ""
                 out.append(f'<use href="#{gid}" x="{x}"{more}/>')
-            x += adv
+            x += adv + track
         return "".join(out)
 
-    def text(self, text, weight, size, x, y, cls="", fill=None) -> str:
+    def text(self, text, weight, size, x, y, cls="", fill=None, track=0) -> str:
         s = size / glyphs()["upm"]
         f = f' fill="{fill}"' if fill else ""
         c = f' class="{cls}"' if cls else ""
-        return f'<g{c}{f} transform="translate({n(x)} {n(y)}) scale({n(s, 5)} {n(-s, 5)})">{self.uses(text, weight)}</g>'
+        return (f'<g{c}{f} transform="translate({n(x)} {n(y)}) scale({n(s, 5)} {n(-s, 5)})">'
+                f'{self.uses(text, weight, track=track)}</g>')
 
     def glyph_defs(self) -> str:
         return "".join(f'<path id="{k}" d="{v}" pathLength="1"/>' for k, v in sorted(self.used.items()))
@@ -908,7 +918,9 @@ def motif_stack(doc, data, box, mini, t0):
     k = len(layers)
     lh = h / k
     lab = 11 if mini else 14
-    lw = max(doc.width(l[0], "medium", lab) for l in layers) + 18
+    track = 90 if data.get("telemetry") else 0          # spaced capitals, like a HUD readout
+    col = lambda i: "var(--%s)" % (layers[i][2] if len(layers[i]) > 2 else ("a1" if i < 3 else "a2"))
+    lw = max(doc.width(l[0], "medium", lab, track) for l in layers) + 18
     nx0, nx1 = x + lw + 10, x + w - 14
     cols = 3
     r = min(lh * 0.34, 16)
@@ -918,12 +930,11 @@ def motif_stack(doc, data, box, mini, t0):
         shift = (nx1 - nx0) / (cols - 1) * (0.18 if i % 2 else -0.0)
         pos.append([(nx0 + r + shift + (nx1 - nx0 - 2 * r - abs(shift)) * j / (cols - 1), yc) for j in range(cols)])
     out = []
-    for i, (name, icon) in enumerate(layers):
+    for i, (name, icon, *_) in enumerate(layers):
         yc = pos[i][0][1]
-        hw = i < 3
         out.append(f'<g class="in"{_delay(t0 + 0.12 * i)}><rect x="{n(x)}" y="{n(yc - lh / 2 + 3)}" width="{n(w)}" height="{n(lh - 6)}" '
-                   f'rx="{n(min(10, lh / 3))}" fill="var(--{"a1" if hw else "a2"})" fill-opacity=".10" stroke="var(--{"a1" if hw else "a2"})" '
-                   f'stroke-opacity=".35"/>{doc.text(name, "medium", lab, x + 10, yc + lab * 0.36, fill="var(--ink)")}</g>')
+                   f'rx="{n(min(10, lh / 3))}" fill="{col(i)}" fill-opacity=".10" stroke="{col(i)}" '
+                   f'stroke-opacity=".35"/>{doc.text(name, "medium", lab, x + 10, yc + lab * 0.36, fill="var(--ink)", track=track)}</g>')
     edges = []
     for i in range(k - 1):
         for j in range(cols):
@@ -937,18 +948,99 @@ def motif_stack(doc, data, box, mini, t0):
         up = e % 2 == 0
         p0, p1 = (a, b) if up else (b, a)
         out.append(f'<path class="pulse" pathLength="1" d="M{n(p0[0])} {n(p0[1])}L{n(p1[0])} {n(p1[1])}" '
-                   f'stroke="var(--{"a1" if up else "a2"})" style="animation-delay:{n(t0 + 1.2 + (e * 0.37) % 2.4, 2)}s"/>')
-    for i, (name, icon) in enumerate(layers):
+                   f'stroke="{col(i if up else i + 1)}" style="animation-delay:{n(t0 + 1.2 + (e * 0.37) % 2.4, 2)}s"/>')
+    for i, (name, icon, *_) in enumerate(layers):
         for j, (X, Y) in enumerate(pos[i]):
             out.append(f'<g class="in"{_delay(t0 + 0.12 * i + 0.05 * j)}><circle cx="{n(X)}" cy="{n(Y)}" r="{n(r)}" '
-                       f'fill="var(--{"a1" if i < 3 else "a2"})" stroke="var(--bg)" stroke-width="2"/>{_icon(icon, X, Y, r)}</g>')
+                       f'fill="{col(i)}" stroke="var(--bg)" stroke-width="2"/>{_icon(icon, X, Y, r)}</g>')
     doc.css.append(".pulse{fill:none;stroke-width:4.5;stroke-linecap:round;stroke-dasharray:.14 .86;stroke-dashoffset:1;"
                    "opacity:0;animation:pulse 2.4s linear infinite}"
                    "@keyframes pulse{0%{stroke-dashoffset:1.14;opacity:1}90%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}")
     return "".join(out)
 
 
-MOTIFS = {"cad": motif_cad, "stack": motif_stack, "catalog": motif_catalog, "eye": motif_eye, "face": motif_face, "terminal": motif_terminal,
+def motif_ops(doc, data, box, mini, t0):
+    """An operations overview in valpatel.com's style: a dark panel with a faint grid, a hub with every product as a
+    zone round it (name and real status), packets running along the links, small agents flying between zones, a
+    pulsing LIVE tag, and telemetry log lines (real recent events) ticking in at the bottom. The base style is the
+    whole board with every log line shown."""
+    x, y, w, h = box
+    cap = glyphs()["cap"] / glyphs()["upm"]
+    nodes = data["nodes"][:8]
+    log = data.get("log", [])[:3]
+    head, lsz = 15, 14
+    out = [f'<rect x="{n(x)}" y="{n(y)}" width="{n(w)}" height="{n(h)}" rx="8" fill="var(--bg)" fill-opacity=".55" '
+           f'stroke="var(--a1)" stroke-opacity=".35"/>',
+           f'<rect x="{n(x)}" y="{n(y)}" width="{n(w)}" height="{n(h)}" rx="8" fill="url(#opg)"/>']
+    doc.defs.append('<pattern id="opg" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" '
+                    'fill="none" stroke="var(--a1)" stroke-opacity=".09"/></pattern>')
+    out.append(doc.text(data.get("title", "OPERATIONS OVERVIEW"), "medium", head, x + 14, y + 14 + head * cap,
+                        fill="var(--a1)", track=140))
+    lw = doc.width("LIVE", "medium", head, 140)
+    out.append(f'<circle class="led" cx="{n(x + w - 26 - lw)}" cy="{n(y + 14 + head * cap / 2)}" r="5" fill="var(--a2)"/>'
+               + doc.text("LIVE", "medium", head, x + w - 14 - lw, y + 14 + head * cap, fill="var(--a2)", track=140))
+    doc.css.append(".led{animation:led 1.6s ease-in-out infinite}@keyframes led{50%{opacity:.3}}")
+    logh = (len(log) * lsz * 1.45 + 18) if log else 0
+    gy0, gy1 = y + 14 + head + 14, y + h - logh - 8
+    cw, chh = w / 3, (gy1 - gy0) / 3
+    cells = [(c, r) for r in range(3) for c in range(3) if (c, r) != (1, 1)]
+    hub = (x + cw * 1.5, gy0 + chh * 1.5)
+    centres = [(x + cw * (c + .5), gy0 + chh * (r + .5)) for c, r in cells]
+    wire = "".join(f"M{n(hub[0])} {n(hub[1])}L{n(cx)} {n(cy)}" for cx, cy in centres[:len(nodes)])
+    out.append(f'<path d="{wire}" stroke="var(--a1)" stroke-opacity=".35" stroke-width="1.6" stroke-dasharray="5 5" fill="none"/>')
+    for i, (cx, cy) in enumerate(centres[:len(nodes)]):        # packets out to each zone and back
+        a, b = (hub, (cx, cy)) if i % 2 == 0 else ((cx, cy), hub)
+        out.append(f'<path class="pk" pathLength="1" d="M{n(a[0])} {n(a[1])}L{n(b[0])} {n(b[1])}" '
+                   f'stroke="var(--{"a2" if i % 2 else "a1"})" style="animation-delay:{n(t0 + 0.8 + (i * 0.53) % 2.6, 2)}s"/>')
+    doc.css.append(".pk{fill:none;stroke-width:4;stroke-linecap:round;stroke-dasharray:.08 .92;stroke-dashoffset:1;"
+                   "opacity:0;animation:pk 2.6s linear infinite}"
+                   "@keyframes pk{0%{stroke-dashoffset:1.08;opacity:1}92%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}")
+    hr = min(cw, chh) * 0.3                                    # the hub: a hexagon with a core
+    hexp = [(hub[0] + hr * math.cos(math.pi / 6 + k * math.pi / 3), hub[1] + hr * math.sin(math.pi / 6 + k * math.pi / 3))
+            for k in range(6)]
+    out.append(f'<path d="{poly(hexp, True)}" fill="var(--bg)" stroke="var(--a1)" stroke-width="2"/>'
+               f'<circle class="core" cx="{n(hub[0])}" cy="{n(hub[1])}" r="{n(hr * .35)}" fill="var(--a1)"/>')
+    doc.css.append(".core{transform-box:fill-box;transform-origin:50% 50%;animation:core 2.2s ease-in-out infinite}"
+                   "@keyframes core{50%{transform:scale(.6);opacity:.6}}")
+    zw, zh = cw - 14, min(chh - 12, 58)
+    ns, ss = 15, 12
+    for i, ((cx, cy), (name, status, *col)) in enumerate(zip(centres, nodes)):
+        c = f"var(--{col[0] if col else ('a1' if i % 2 == 0 else 'a2')})"
+        zx, zy = cx - zw / 2, cy - zh / 2
+        t = 9
+        ticks = (f"M{n(zx)} {n(zy + t)}V{n(zy)}H{n(zx + t)}M{n(zx + zw - t)} {n(zy)}H{n(zx + zw)}V{n(zy + t)}"
+                 f"M{n(zx + zw)} {n(zy + zh - t)}V{n(zy + zh)}H{n(zx + zw - t)}M{n(zx + t)} {n(zy + zh)}H{n(zx)}V{n(zy + zh - t)}")
+        tw = doc.width(name, "medium", ns, 80)
+        nsz = ns if tw <= zw - 16 else ns * (zw - 16) / tw
+        out.append(f'<g class="in"{_delay(t0 + 0.08 * i)}><rect x="{n(zx)}" y="{n(zy)}" width="{n(zw)}" height="{n(zh)}" '
+                   f'fill="{c}" fill-opacity=".08" stroke="{c}" stroke-opacity=".3"/>'
+                   f'<path d="{ticks}" fill="none" stroke="{c}" stroke-width="2"/>'
+                   + doc.text(name, "medium", nsz, zx + 8, zy + 8 + nsz * cap, fill="var(--ink)", track=80)
+                   + doc.text(status, "medium", ss, zx + 8, zy + zh - 8, fill=c, track=60) + '</g>')
+    for k, route in enumerate(data.get("agents", [[0, 4, 7], [2, 5, 3]])):   # agents hop zone to zone
+        pts = [centres[j] for j in route if j < len(nodes)] + [centres[route[0]]]
+        dur = 2.2 * (len(pts) - 1)
+        stops = "".join(f"{n(100 * q / (len(pts) - 1), 1)}%{{transform:translate({n(px - pts[0][0])}px,{n(py - pts[0][1])}px)}}"
+                        for q, (px, py) in enumerate(pts))
+        X, Y = pts[0][0] + zw / 2 - 12, pts[0][1] - zh / 2 + 12
+        arms = "".join(f"M{n(X + dx * 3)} {n(Y + dy * 3)}l{n(dx * 5)} {n(dy * 5)}" for dx, dy in ((1, 1), (1, -1), (-1, 1), (-1, -1)))
+        out.append(f'<g class="ag{k}"><path d="{arms}" stroke="var(--a2)" stroke-width="1.8"/>'
+                   f'<circle cx="{n(X)}" cy="{n(Y)}" r="3.2" fill="var(--a2)"/></g>')
+        doc.css.append(f".ag{k}{{animation:ag{k} {n(dur, 1)}s {n(t0 + 1 + k * 1.1, 2)}s ease-in-out infinite}}@keyframes ag{k}{{{stops}}}")
+    if log:                                                    # telemetry ticking in, newest last
+        ly = y + h - logh
+        out.append(f'<path d="M{n(x + 10)} {n(ly)}H{n(x + w - 10)}" stroke="var(--a1)" stroke-opacity=".25"/>')
+        for i, line in enumerate(log):
+            yy = ly + 10 + lsz * cap + i * lsz * 1.45
+            out.append(f'<g class="lg" style="animation-delay:{n(t0 + 0.6 + 0.9 * i, 2)}s">'
+                       + doc.text("> " + line, "medium", lsz, x + 14, yy, fill="var(--a2)" if i == len(log) - 1 else "var(--muted)", track=40)
+                       + "</g>")
+        doc.css.append(".lg{animation:lg 9s ease-out infinite both}"
+                       "@keyframes lg{0%{opacity:0;transform:translateX(-8px)}6%,88%{opacity:1;transform:none}100%{opacity:1}}")
+    return "".join(out)
+
+
+MOTIFS = {"cad": motif_cad, "stack": motif_stack, "ops": motif_ops, "catalog": motif_catalog, "eye": motif_eye, "face": motif_face, "terminal": motif_terminal,
           "circuit": motif_circuit, "chart": motif_chart, "dial": motif_dial, "slides": motif_slides,
           "linkage": motif_linkage, "wave": motif_wave, "crystal": motif_crystal, "radar": motif_radar,
           "fight": motif_fight, "network": motif_network}
@@ -1034,6 +1126,20 @@ def _chip(doc, c, x, y, cs, ch, cap, mini, delay=None):
     return svg, cw
 
 
+def _cta(doc, spec, x, y, fs, ph, cap):
+    """A call-to-action pill (the card links there): a play triangle or an arrow, then the label. Returns its width."""
+    cta = spec["cta"]
+    pw = doc.width(cta, "medium", fs) + 50
+    k = ph / 32
+    icon = (f'<path d="M{n(x + 15 * k)} {n(y + 9 * k)}l{n(13 * k)} {n(7 * k)}-{n(13 * k)} {n(7 * k)}z" fill="var(--bg)"/>'
+            if spec.get("cta_icon") == "play" else
+            f'<path d="M{n(x + 13 * k)} {n(y + ph / 2)}h{n(14 * k)}m-{n(5 * k)}-{n(5 * k)} {n(5 * k)} {n(5 * k)}-{n(5 * k)} {n(5 * k)}" '
+            f'fill="none" stroke="var(--bg)" stroke-width="{n(2.4 * k)}" stroke-linecap="round" stroke-linejoin="round"/>')
+    doc.css.append(".cta{animation:cta 2.4s 1s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
+    return (f'<g class="cta"><rect x="{n(x)}" y="{n(y)}" width="{n(pw)}" height="{n(ph)}" rx="{n(ph / 2)}" fill="var(--a1)"/>'
+            f'{icon}{doc.text(cta, "medium", fs, x + 37 * k, y + ph / 2 + fs * cap / 2, fill="var(--bg)")}</g>'), pw
+
+
 def _card_text(doc, spec, title, W, H, adv, cap):
     """A profile card, made to be read at a third of a README's width: the name set large and solid from the first
     frame (cards often start animating only once scrolled into view, so nothing a reader needs may wait on a
@@ -1064,17 +1170,11 @@ def _card_text(doc, spec, title, W, H, adv, cap):
     x = margin
     cta = spec.get("cta")
     if cta and yy > y_end + 8:                      # a call to action: the card links there
-        fs, ph = 17, 32
+        ph = 32
         yy = H - margin - ph + 6
-        tw = doc.width(cta, "medium", fs)
-        pw = tw + 50
-        icon = (f'<path d="M{n(x + 15)} {n(yy + 9)}l13 7-13 7z" fill="var(--bg)"/>' if spec.get("cta_icon") == "play" else
-                f'<path d="M{n(x + 13)} {n(yy + ph / 2)}h14m-5-5 5 5-5 5" fill="none" stroke="var(--bg)" stroke-width="2.4" '
-                f'stroke-linecap="round" stroke-linejoin="round"/>')
-        out.append(f'<g class="cta"><rect x="{n(x)}" y="{n(yy)}" width="{n(pw)}" height="{ph}" rx="{ph / 2}" fill="var(--a1)"/>'
-                   f'{icon}{doc.text(cta, "medium", fs, x + 37, yy + ph / 2 + fs * cap / 2, fill="var(--bg)")}</g>')
+        svg, pw = _cta(doc, spec, x, yy, 17, ph, cap)
+        out.append(svg)
         x += pw + 8
-        doc.css.append(".cta{animation:cta 2.4s 1s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
         yy += (ph - ch) / 2
         chips = chips[:1] if x + 90 < left else []
     if chips and yy > y_end + 8:
@@ -1090,12 +1190,18 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
     margin = L["margin"]
     upm = glyphs()["upm"]
     fs = min(L["fs_max"], (W - margin * 2) / (adv / upm))
-    base = margin + cap * fs + 4
+    kick = spec.get("kicker")                           # a telemetry line over the name, valpatel.com style
+    base = margin + (34 if kick else 0) + cap * fs + 4
     s = fs / upm
     tr = f"translate({n(margin)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
     doc.defs.append(f'<linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{n(adv, 0)}" y2="0">'
                     f'<stop offset="0" stop-color="var(--a1)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient>')
     out = []
+    if kick:
+        ks = 15
+        out.append(f'<circle class="led" cx="{n(margin + 5)}" cy="{n(margin + 6)}" r="4.5" fill="var(--a2)"/>'
+                   + doc.text(kick.upper(), "medium", ks, margin + 20, margin + 6 + ks * cap / 2, fill="var(--a1)", track=140))
+        doc.css.append(".led{animation:led 1.6s ease-in-out infinite}@keyframes led{50%{opacity:.3}}")
     still = kind == "spot"      # spotlights sit below the fold and start late: their name is there from the first frame
     if still:
         sketch_css, t_name = "", 0.3
@@ -1130,8 +1236,14 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
             rows.append([])
         rows[-1].append((c, cw))
     rows = [r for r in rows if r]
+    x0 = margin
+    if spec.get("cta"):                                 # the call to action leads the bottom row
+        svg, pw = _cta(doc, spec, margin, H - margin - ch, L["cs"] + 3, ch, cap)
+        out.append(svg)
+        x0 = margin + pw + 10
+        rows = [rows[-1][:max(1, len(rows[-1]) - 1)]] if rows else []
     for ri, row in enumerate(reversed(rows)):
-        x = margin
+        x = x0 if ri == 0 else margin
         yy = H - margin - ch - ri * (ch + 8)
         if yy < y_text_end + 10:
             break
@@ -1183,6 +1295,11 @@ def render(spec: dict, theme: str) -> str:
              f'<rect width="{W}" height="{H}" rx="{14 if mini else 18}" fill="url(#dots)" opacity=".7"/>'
              f'<rect width="{W}" height="{H}" rx="{14 if mini else 18}" fill="url(#glow)"/>'
              f'<rect x=".5" y=".5" width="{W - 1}" height="{H - 1}" rx="{14 if mini else 18}" fill="none" stroke="{pal["line"]}"/>')
+    if spec.get("hud"):                                 # HUD corner brackets
+        i, L = 12, 28
+        frame += (f'<path d="M{i} {i + L}V{i}H{i + L}M{W - i - L} {i}H{W - i}V{i + L}M{W - i} {H - i - L}V{H - i}'
+                  f'H{W - i - L}M{i + L} {H - i}H{i}V{H - i - L}" fill="none" stroke="var(--a1)" stroke-width="2.5" '
+                  f'stroke-linecap="square"/>')
     desc = spec.get("desc", "")
     src = m.get("source") if isinstance(m.get("source"), dict) else {}
     if desc and src.get("repo") and src.get("commit") and not spec.get("private"):
@@ -1195,7 +1312,7 @@ def render(spec: dict, theme: str) -> str:
     return _colour(svg, spec.get("palette", "teal"), theme)
 
 
-KEYS = ("bg2", "bg", "ink", "muted", "line", "edge", "a1", "a2", "f1", "f2", "f3", "dk")
+KEYS = ("bg2", "bg", "ink", "muted", "line", "edge", "a1", "a2", "a3", "a4", "f1", "f2", "f3", "dk")
 
 
 def _colour(svg: str, pal_name: str, theme: str) -> str:
@@ -1213,7 +1330,8 @@ def _colour(svg: str, pal_name: str, theme: str) -> str:
     back = {light[k]: dark[k] for k in KEYS}
     over = "".join(f'[{a}="{c}"]{{{a}:{back[c]}}}' for c in sorted(back) for a in ("fill", "stroke", "stop-color")
                    if f'{a}="{c}"' in tail)
-    decl = lambda p: "svg{" + ";".join(f"--{k}:{p[k]}" for k in KEYS) + "}"
+    keys = [k for k in KEYS if k not in ("a3", "a4") or f"var(--{k})" in style]   # extra accents only when used
+    decl = lambda p: "svg{" + ";".join(f"--{k}:{p[k]}" for k in keys) + "}"
     style = decl(light) + "@media (prefers-color-scheme:dark){" + decl(dark) + over + "}" + style
     return head + style + tail
 
@@ -1301,18 +1419,18 @@ def extract_lines(readme: Path) -> dict:
 
 # ------------------------------------------------------------------------------------------------ CLI
 
-def banners() -> list:
-    return json.loads((HERE / "banners.json").read_text(encoding="utf-8"))["banners"]
+def banners(path: Path = None) -> list:
+    return json.loads((path or HERE / "banners.json").read_text(encoding="utf-8"))["banners"]
 
 
-def outputs(spec: dict, roots: dict):
+def outputs(spec: dict, roots: dict, home: Path = ROOT):
     """(theme, path) pairs for a banner: ``out`` is ``owner/repo:path`` (or a list of them; a bare path is this
     repo), and each theme is written to ``<path>-<theme>.svg`` (``<path>.svg`` for ``auto``). Repos that are not
     checked out here (``--repo``) are skipped."""
     out = []
     for target in spec["out"] if isinstance(spec["out"], list) else [spec["out"]]:
         repo, rel = target.split(":", 1) if ":" in target else (THIS_REPO, target)
-        root = ROOT if repo == THIS_REPO else roots.get(repo)
+        root = home if repo == THIS_REPO else roots.get(repo)
         if root is None:
             continue
         for t in spec.get("themes", THEMES[spec.get("kind", "hero")]):
@@ -1330,6 +1448,8 @@ def main(argv=None) -> int:
     ap.add_argument("--check", action="store_true", help="compare with the committed files instead of writing")
     ap.add_argument("--repo", action="append", default=[], metavar="OWNER/NAME=PATH",
                     help="a checkout of another repo whose banners to write or check")
+    ap.add_argument("--spec", type=Path, help="render the banners in this file instead of banners.json; "
+                    "bare out paths are then relative to the current directory (a profile repo's own workflow)")
     ap.add_argument("--extract", choices=["catalog", "lines"])
     ap.add_argument("--source", type=Path)
     ap.add_argument("--out", type=Path)
@@ -1346,10 +1466,10 @@ def main(argv=None) -> int:
         return 0
     roots = dict(r.split("=", 1) for r in a.repo)
     bad = 0
-    for spec in banners():
+    for spec in banners(a.spec):
         if a.names and spec["name"] not in a.names:
             continue
-        for theme, path in outputs(spec, roots):
+        for theme, path in outputs(spec, roots, Path.cwd() if a.spec else ROOT):
             text = render(spec, theme)
             for p in problems(text, spec.get("kind", "hero")):
                 print(f"{path}: {p}")
