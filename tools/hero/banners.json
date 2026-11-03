@@ -247,10 +247,7 @@
    "title": "Graphlings",
    "kind": "card",
    "palette": "cyan",
-   "out": [
-    "assets/cards/graphlings",
-    "Valpatel/.github:assets/cards/graphlings"
-   ],
+   "out": "assets/cards/graphlings",
    "tagline": "Crystal creatures that live, think and remember.",
    "facts": [],
    "motif": {
@@ -282,10 +279,7 @@
    "title": "Club Fight",
    "kind": "card",
    "palette": "rose",
-   "out": [
-    "assets/cards/club-fight",
-    "Valpatel/.github:assets/cards/club-fight"
-   ],
+   "out": "assets/cards/club-fight",
    "tagline": "An animal fighting game.",
    "facts": [],
    "motif": {

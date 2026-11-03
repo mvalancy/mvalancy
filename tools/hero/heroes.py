@@ -42,7 +42,12 @@ THIS_REPO = "mvalancy/mvalancy"
 BUDGET = {"hero": 150_000, "spot": 150_000, "card": 30_000}
 REDUCED_MOTION = "@media (prefers-reduced-motion:reduce){*{animation:none!important}}"
 SIZES = {"hero": (1200, 440), "spot": (800, 400), "card": (600, 300)}
-THEMES = {"hero": ["light", "dark"], "spot": ["auto"], "card": ["auto"]}   # cards sit in links: one file, OS theme
+# Colours are baked into each file. WebKit (every iOS browser) draws an SVG in an <img> with the light scheme whatever
+# the page is, so a scheme switched inside the SVG never fires there. A hero is not a link, so it gets a light and a
+# dark file for a <picture>. Cards and spotlights are links, and GitHub cannot theme a linked image (its sanitiser
+# takes the <img> out of a <picture> inside <a>, and an <a> inside <picture> hides the <source>), so they are drawn
+# dark only: one file that reads on a light page and a dark one alike.
+THEMES = {"hero": ["light", "dark"], "spot": ["dark"], "card": ["dark"]}
 
 # ------------------------------------------------------------------------------------------------ palettes
 

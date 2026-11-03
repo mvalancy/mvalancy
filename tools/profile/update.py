@@ -4,9 +4,9 @@
     GITHUB_TOKEN=... python3 tools/profile/update.py README.md
     GITHUB_TOKEN=... python3 tools/profile/update.py --config profile/live.json profile/README.md
 
-Two blocks are rewritten in place, each between its own marker comments:
+These blocks are rewritten in place, each between its own marker comments:
 
-* ``spotlight``: the projects that have spotlight art (``SPOT``), newest default-branch commit first, each as its animated
+* ``spotlight`` ("Recently updated"): the projects in ``SPOT``, always all of them in that fixed order, each as its animated
   card with live shields (latest release, or last commit when there is none, and stars) and a "what's new" line
   taken from its latest non-merge commit on the default branch.
 * ``activity``: releases from the last two months.
@@ -41,13 +41,13 @@ API = "https://api.github.com"
 ACCOUNTS = [("users", "mvalancy"), ("orgs", "Valpatel")]
 SKIP = {"mvalancy/mvalancy", "Valpatel/.github"}  # the profile repos themselves: their pushes are this job's own
 SPOT = {
-    "Valpatel/cad-agent": dict(art="assets/spot/cad-agent.svg", link="https://cad-agent.valpatel.com",
+    "Valpatel/cad-agent": dict(art="assets/spot/cad-agent", link="https://cad-agent.valpatel.com",
                                alt="cad-agent: your one stop shop for agentic CAD."),
-    "Valpatel/gyropup": dict(art="assets/spot/gyropup.svg", link="https://gyropup.com",
+    "Valpatel/gyropup": dict(art="assets/spot/gyropup", link="https://gyropup.com",
                              alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."),
-    "mvalancy/val-ark": dict(art="assets/spot/val-ark.svg",
+    "mvalancy/val-ark": dict(art="assets/spot/val-ark",
                              alt="val-ark: fills a disk with open-source tools, AI models and Wikipedia, then serves it offline."),
-    "mvalancy/j501-agx-orin": dict(art="assets/spot/j501-agx-orin.svg",
+    "mvalancy/j501-agx-orin": dict(art="assets/spot/j501-agx-orin",
                                    alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."),
 }
 RELEASES, RECENT = 4, 60
@@ -150,15 +150,22 @@ def gather(get=fetch, now: str = None) -> dict:
     return out
 
 
+def card(art: str, alt: str, width: str, link: str) -> str:
+    """A linked card. GitHub cannot theme a linked image (a <picture> inside <a> loses its <img>; an <a> inside
+    <picture> hides the <source>), so spotlights are drawn dark only, which reads on light and dark pages alike."""
+    return f'<a href="{link}"><img src="{art}-dark.svg" width="{width}" alt="{alt}"></a>'
+
+
 def badge(path: str, alt: str, query: str = "") -> str:
     return f'<img src="https://img.shields.io/github/{path}?style=flat-square{query}" alt="{alt}">'
 
 
 def spotlight(data: dict) -> str:
-    spots = sorted((r for r in data["repos"] if r["full"] in SPOT),
-                   key=lambda r: (r["commit"][0] if r["commit"] else "", r["full"]), reverse=True)
-    if not spots:                                       # never commit an empty spotlight: fail the run instead
-        raise SystemExit("no spotlight repository came back from the API")
+    by_name = {r["full"]: r for r in data["repos"]}
+    missing = [full for full in SPOT if full not in by_name]
+    if missing:                                         # the owner picked these four: never drop one, fail instead
+        raise SystemExit(f"spotlight repositories missing from the API: {', '.join(missing)}")
+    spots = [by_name[full] for full in SPOT]            # the owner's order, never reordered
     cells = []
     for r in spots:
         s = SPOT[r["full"]]
@@ -168,7 +175,7 @@ def spotlight(data: dict) -> str:
         stars = badge(f"stars/{full}", "stars", "&amp;label=%E2%98%85")
         new = f"<b>New</b> · {day(r['commit'][0])} · {html.escape(clean(r['commit'][1], 48), False)}" if r["commit"] else ""
         cells.append(f'<td width="50%" valign="top">\n'
-                     f'<a href="{s.get("link", r["url"])}"><img src="{s["art"]}" width="100%" alt="{html.escape(s["alt"])}"></a>\n'
+                     f'{card(s["art"], html.escape(s["alt"]), "100%", s.get("link", r["url"]))}\n'
                      f'<br><a href="{r["url"]}">{live} {stars}</a>\n'
                      f'<br><sub>{new}</sub>\n</td>')
     rows = ["<tr>\n" + "\n".join(cells[i:i + 2]) + "\n</tr>" for i in range(0, len(cells), 2)]

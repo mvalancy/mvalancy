@@ -1,6 +1,7 @@
 name: profile
-# Refresh "Recently shipped" and the activity strip in README.md once a day from the public GitHub API
-# (tools/profile/update.py) and commit the result if anything changed. Nothing else is written.
+# Once a day, from the public GitHub API (tools/profile/update.py): refresh the "what's new" line under each of the
+# four "Recently updated" projects (which stay fixed, in the owner's order) and the releases strip in README.md, and
+# commit only if something changed. Nothing else is written.
 on:
   schedule:
     - cron: "17 13 * * *"
@@ -24,5 +25,5 @@ jobs:
           git diff --quiet -- README.md && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Refresh recently shipped" -- README.md
+          git commit -m "Refresh recently updated" -- README.md
           git push
