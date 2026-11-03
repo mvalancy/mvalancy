@@ -83,18 +83,16 @@
    "kind": "hero",
    "palette": "cyan",
    "out": "assets/hero/mvalancy",
-   "tagline": "Full-stack generalist building independent thinking machines: robots, edge AI and the tools behind them.",
+   "tagline": "Full-stack hardware + software engineer: from PCBs, CAD and robots to edge AI and the tools behind them.",
    "facts": [
     "Valpatel Software",
     "robotics · edge AI",
     "Dublin, California"
    ],
    "motif": {
-    "kind": "network",
-    "seed": "mvalancy",
-    "nodes": 18
+    "kind": "stack"
    },
-   "desc": "A constellation of projects: nodes light up and pulses travel along the links between them."
+   "desc": "The stack I build across, bottom to top: PCBs and electronics, CAD and mechanical, motors and robots, firmware, edge AI, apps and UI. Signals pulse up and down the links between the layers."
   },
   {
    "name": "profile-valpatel",
@@ -115,40 +113,12 @@
    "desc": "A crystal creature floats over a network of glowing nodes."
   },
   {
-   "name": "card-val-ark",
-   "title": "val-ark",
-   "kind": "card",
-   "palette": "teal",
-   "out": "assets/cards/val-ark",
-   "tagline": "Offline-first mirror: open-source tools, AI models and Wikipedia, served over local wifi.",
-   "facts": [
-    "shell · Node"
-   ],
-   "motif": {
-    "data": "motifs/val-ark.catalog.json"
-   }
-  },
-  {
-   "name": "card-j501-agx-orin",
-   "title": "j501-agx-orin",
-   "kind": "card",
-   "palette": "orange",
-   "out": "assets/cards/j501-agx-orin",
-   "tagline": "3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin, traced from its CAD.",
-   "facts": [
-    "CadQuery"
-   ],
-   "motif": {
-    "data": "motifs/j501-agx-orin.cad.json"
-   }
-  },
-  {
    "name": "card-moxie-robot-saver",
    "title": "moxie-robot-saver",
    "kind": "card",
    "palette": "cyan",
    "out": "assets/cards/moxie-robot-saver",
-   "tagline": "A self-hosted replacement for the cloud Moxie robots depended on: a new ghost for the shell.",
+   "tagline": "A self-hosted cloud replacement for Moxie robots.",
    "facts": [
     "open source"
    ],
@@ -157,31 +127,12 @@
    }
   },
   {
-   "name": "card-logitech_bcc950",
-   "title": "logitech_bcc950",
-   "kind": "card",
-   "palette": "violet",
-   "out": "assets/cards/logitech_bcc950",
-   "tagline": "A talking eyeball on a stick: pan, tilt and zoom for the Logitech BCC950.",
-   "facts": [
-    "Python · C++"
-   ],
-   "motif": {
-    "kind": "eye",
-    "pan": 1,
-    "zoom": [
-     100,
-     500
-    ]
-   }
-  },
-  {
    "name": "card-pcb-agx-thor-can-breakout",
    "title": "pcb-agx-thor-can-breakout",
    "kind": "card",
    "palette": "green",
    "out": "assets/cards/pcb-agx-thor-can-breakout",
-   "tagline": "CAN breakout adapters for Jetson AGX Thor, with protected DE9 ports and printed housings.",
+   "tagline": "CAN breakout adapters for Jetson AGX Thor.",
    "facts": [
     "KiCad"
    ],
@@ -191,80 +142,12 @@
    }
   },
   {
-   "name": "card-blender-nvidia-gb10",
-   "title": "blender-nvidia-gb10",
-   "kind": "card",
-   "palette": "amber",
-   "out": "assets/cards/blender-nvidia-gb10",
-   "tagline": "Build Blender 5.0.1 from source on NVIDIA DGX Spark / GB10: ARM64 with CUDA.",
-   "facts": [
-    "shell"
-   ],
-   "motif": {
-    "data": "motifs/blender-nvidia-gb10.lines.json"
-   }
-  },
-  {
-   "name": "card-motor-ui-ddsm115-220",
-   "title": "motor-ui-ddsm115-220",
-   "kind": "card",
-   "palette": "rose",
-   "out": "assets/cards/motor-ui-ddsm115-220",
-   "tagline": "A touch-friendly GUI for DDSM115 and DDSM210 servo motors with live monitoring.",
-   "facts": [
-    "Python"
-   ],
-   "motif": {
-    "kind": "dial"
-   }
-  },
-  {
-   "name": "card-enphase-telegraf",
-   "title": "enphase-telegraf",
-   "kind": "card",
-   "palette": "lime",
-   "out": "assets/cards/enphase-telegraf",
-   "tagline": "Real-time Enphase solar and battery monitoring, streamed into InfluxDB with Telegraf.",
-   "facts": [
-    "Telegraf"
-   ],
-   "motif": {
-    "kind": "chart",
-    "style": "solar"
-   }
-  },
-  {
-   "name": "card-telegraf-slurm-cfg",
-   "title": "telegraf-slurm-cfg",
-   "kind": "card",
-   "palette": "blue",
-   "out": "assets/cards/telegraf-slurm-cfg",
-   "tagline": "Monitor a Slurm cluster with nothing but drop-in Telegraf config files.",
-   "facts": [
-    "Telegraf"
-   ],
-   "motif": {
-    "kind": "chart",
-    "style": "bars",
-    "values": [
-     0.82,
-     0.64,
-     0.9,
-     0.4,
-     0.72,
-     0.55,
-     0.95,
-     0.3
-    ]
-   }
-  },
-  {
    "name": "card-csci-40_f26_demos",
    "title": "csci-40_f26_demos",
    "kind": "card",
    "palette": "violet",
    "out": "assets/cards/csci-40_f26_demos",
-   "tagline": "Web apps and games built live in CSCI 40 with AI coding agents, each tested in a real browser.",
+   "tagline": "Web apps and games built live in CSCI 40.",
    "facts": [
     "MIT"
    ],
@@ -278,76 +161,12 @@
    "kind": "card",
    "palette": "amber",
    "out": "assets/cards/lesson-plans",
-   "tagline": "Lesson materials for AI classes: a free, self-paced Introduction to AI Tools.",
+   "tagline": "A free, self-paced Introduction to AI.",
    "facts": [
     "courses"
    ],
    "motif": {
     "kind": "slides"
-   }
-  },
-  {
-   "name": "card-ovpn-connexa-python",
-   "title": "ovpn-connexa-python",
-   "kind": "card",
-   "palette": "blue",
-   "out": "assets/cards/ovpn-connexa-python",
-   "tagline": "A Python client for the OpenVPN Cloud Connexa API: networks, users and DNS.",
-   "facts": [
-    "Python"
-   ],
-   "motif": {
-    "data": "motifs/ovpn-connexa-python.lines.json"
-   }
-  },
-  {
-   "name": "card-KiCAD_Libs",
-   "title": "KiCAD_Libs",
-   "kind": "card",
-   "palette": "cyan",
-   "out": "assets/cards/KiCAD_Libs",
-   "tagline": "Reusable KiCad symbols, footprints and 3D models from my hardware projects.",
-   "facts": [
-    "KiCad"
-   ],
-   "motif": {
-    "kind": "circuit",
-    "seed": "kicad-libs"
-   }
-  },
-  {
-   "name": "card-IC_Breakouts",
-   "title": "IC_Breakouts",
-   "kind": "card",
-   "palette": "rose",
-   "out": "assets/cards/IC_Breakouts",
-   "tagline": "KiCad breakout boards for ICs I like.",
-   "facts": [
-    "KiCad"
-   ],
-   "motif": {
-    "kind": "circuit",
-    "seed": "ic-breakouts"
-   }
-  },
-  {
-   "name": "card-linux_tools",
-   "title": "linux_tools",
-   "kind": "card",
-   "palette": "green",
-   "out": "assets/cards/linux_tools",
-   "tagline": "Linux tools.",
-   "facts": [],
-   "motif": {
-    "kind": "terminal",
-    "lines": [
-     24,
-     38,
-     16,
-     30,
-     44,
-     20
-    ]
    }
   },
   {
@@ -359,7 +178,7 @@
     "assets/cards/cyberpower-pdu",
     "Valpatel/.github:assets/cards/cyberpower-pdu"
    ],
-   "tagline": "Self-hosted monitoring and automation for CyberPower PDUs and transfer switches: MQTT, InfluxDB, Home Assistant.",
+   "tagline": "Self-hosted monitoring for CyberPower PDUs.",
    "facts": [],
    "motif": {
     "kind": "chart",
@@ -376,7 +195,7 @@
     "assets/cards/gyropup",
     "Valpatel/.github:assets/cards/gyropup"
    ],
-   "tagline": "A research robot designed to balance on two wheel-legs, with a foam-ball turret.",
+   "tagline": "Wheel-legged robot with a foam-ball turret.",
    "facts": [
     "MIT"
    ],
@@ -393,15 +212,12 @@
     "assets/cards/cad-agent",
     "Valpatel/.github:assets/cards/cad-agent"
    ],
-   "tagline": "A workshop where AI agents get better at CAD by learning from everyone else.",
+   "tagline": "Your one stop shop for agentic CAD.",
    "facts": [
     "MIT"
    ],
    "motif": {
-    "data": "motifs/gyropup.mesh.json",
-    "only_groups": [
-     "leg"
-    ]
+    "data": "motifs/cad-agent.mesh.json"
    }
   },
   {
@@ -413,7 +229,7 @@
     "assets/cards/app-soundbox",
     "Valpatel/.github:assets/cards/app-soundbox"
    ],
-   "tagline": "Local AI audio generation (music, effects, voice) for agents and humans.",
+   "tagline": "Local AI music, sound effects and voice.",
    "facts": [
     "Python"
    ],
@@ -431,13 +247,14 @@
     "assets/cards/graphlings",
     "Valpatel/.github:assets/cards/graphlings"
    ],
-   "tagline": "Crystal creatures that live, think and remember across connected worlds.",
+   "tagline": "Crystal creatures that live, think and remember.",
    "facts": [],
    "motif": {
     "kind": "crystal",
     "seed": "graphlings"
    },
-   "private": true
+   "private": true,
+   "cta": "Visit"
   },
   {
    "name": "card-tritium",
@@ -448,7 +265,7 @@
     "assets/cards/tritium",
     "Valpatel/.github:assets/cards/tritium"
    ],
-   "tagline": "Every sensor fused into one operating picture, on your own hardware.",
+   "tagline": "Every sensor fused into one operating picture.",
    "facts": [],
    "motif": {
     "kind": "radar",
@@ -470,7 +287,69 @@
    "motif": {
     "kind": "fight"
    },
-   "private": true
+   "private": true,
+   "cta": "Play",
+   "cta_icon": "play"
+  },
+  {
+   "name": "spot-cad-agent",
+   "title": "cad-agent",
+   "kind": "spot",
+   "palette": "orange",
+   "out": "assets/spot/cad-agent",
+   "tagline": "Your one stop shop for agentic CAD: self-improving AI for designing physical objects.",
+   "facts": [
+    "MIT",
+    "open source"
+   ],
+   "motif": {
+    "data": "motifs/cad-agent.mesh.json"
+   }
+  },
+  {
+   "name": "spot-gyropup",
+   "title": "Gyropup",
+   "kind": "spot",
+   "palette": "gyropup",
+   "out": "assets/spot/gyropup",
+   "tagline": "A research robot designed to balance on two wheel-legs, with a foam-ball turret.",
+   "facts": [
+    "five-bar leg v2",
+    "MuJoCo"
+   ],
+   "motif": {
+    "data": "motifs/gyropup.mesh.json"
+   }
+  },
+  {
+   "name": "spot-val-ark",
+   "title": "val-ark",
+   "kind": "spot",
+   "palette": "teal",
+   "out": "assets/spot/val-ark",
+   "tagline": "Fills a disk with open-source tools, AI models and Wikipedia, then serves it offline.",
+   "facts": [
+    "50+ tools",
+    "offline-first"
+   ],
+   "motif": {
+    "data": "motifs/val-ark.catalog.json"
+   }
+  },
+  {
+   "name": "spot-j501-agx-orin",
+   "title": "j501-agx-orin",
+   "kind": "spot",
+   "palette": "orange",
+   "out": "assets/spot/j501-agx-orin",
+   "tagline": "A 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin.",
+   "facts": [
+    "CadQuery",
+    "MIT"
+   ],
+   "motif": {
+    "data": "motifs/j501-agx-orin.cad.json"
+   }
   }
  ]
 }

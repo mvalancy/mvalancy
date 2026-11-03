@@ -38,9 +38,10 @@ from xml.sax.saxutils import escape
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 THIS_REPO = "mvalancy/mvalancy"
-BUDGET = {"hero": 150_000, "card": 30_000}
+BUDGET = {"hero": 150_000, "spot": 150_000, "card": 30_000}
 REDUCED_MOTION = "@media (prefers-reduced-motion:reduce){*{animation:none!important}}"
-SIZES = {"hero": (1200, 440), "card": (600, 200)}
+SIZES = {"hero": (1200, 440), "spot": (800, 400), "card": (600, 300)}
+THEMES = {"hero": ["light", "dark"], "spot": ["auto"], "card": ["auto"]}   # cards sit in links: one file, OS theme
 
 # ------------------------------------------------------------------------------------------------ palettes
 
@@ -261,6 +262,13 @@ def motif_cad(doc, data, box, mini, t0):
         data = dict(data, parts=[p for p in data["parts"] if p.get("group") in data["only_groups"]], groups=None)
     rest = data.get("rest_pose")
     parts = data["parts"]
+    checks = data.get("checks") or []
+    lab = (15 if mini else 17)
+    row = lambda lab: sum(lab * 2.6 + doc.width(c, "medium", lab) for c in checks) - lab * 1.1
+    if checks and row(lab) > w:                     # the row fits the motif box: shrink the labels, never clip
+        lab = max(10, lab * w / row(lab))
+    if checks:                                      # a row of ticked checks under the drawing
+        h -= lab + 14
     if mini or not data.get("scan"):                # cards stay still in the rest pose
         parts = [p for p in parts if p.get("pose") in (None, rest)]
     pts = [q for part in parts for loops in _loops(part).values() for loop in loops for q in loop]
@@ -305,6 +313,20 @@ def motif_cad(doc, data, box, mini, t0):
             body = f'<g class="ps{k}"{"" if k == rest else " opacity=" + chr(34) + "0" + chr(34)}>{body}</g>'
         out.append(f'<g class="{cls}"{style}>{body}</g>')
     out.append("</g>")
+    t_land = t0 + 0.7 + 0.55 * max(g_last - 1, 0) + 0.9
+    r = 10 if mini else 12
+    tick = lambda X, Y, r: (f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(r)}" fill="var(--a2)"/><path d="M{n(X - r * .45)} '
+                            f'{n(Y + r * .02)}l{n(r * .3)} {n(r * .32)}l{n(r * .58)} {n(-r * .64)}" fill="none" '
+                            f'stroke="var(--bg)" stroke-width="{n(r * .28)}" stroke-linecap="round" stroke-linejoin="round"/>')
+    for i, mk in enumerate(data.get("marks") or []):   # tick off the named points (joints) one by one
+        X, Y = tf(mk)
+        out.append(f'<g class="in"{_delay(t_land + 0.18 * i)}>{tick(X, Y, r)}</g>')
+    if checks:
+        cx, cy = x, y + h + 10 + lab / 2
+        for i, c in enumerate(checks):
+            out.append(f'<g class="in"{_delay(t_land + 0.8 + 0.25 * i)}>{tick(cx + lab * .6, cy, lab * .6)}'
+                       f'{doc.text(c, "medium", lab, cx + lab * 1.5, cy + lab * 0.36, fill="var(--ink)")}</g>')
+            cx += lab * 1.5 + doc.width(c, "medium", lab) + lab * 1.1
     if data.get("scan") and not mini:               # the scan starts once every group has landed
         _scan_css(doc, data, sorted({p["pose"] for p in parts if p.get("pose") is not None}),
                   t0 + 0.7 + 0.55 * max(g_last - 1, 0) + 0.9 + data.get("scan_wait", 0.8))
@@ -804,6 +826,7 @@ def motif_fight(doc, data, box, mini, t0):
                    f'<rect class="hp {cls}" x="{n(hx)}" y="{n(y + 8)}" width="{n(w * 0.42)}" height="8" rx="4"/>')
     doc.css.append(".arena{fill:var(--edge);opacity:.12}.fl{fill:var(--a1)}.fr{fill:var(--a2)}.fey{fill:#0b1016}"
                    ".brow{stroke:#0b1016;stroke-width:3;stroke-linecap:round}"
+                   ".fl,.fr{transform-box:fill-box;transform-origin:50% 50%}"   # rotate about the fighter, not the card corner
                    ".fl{animation:lunge 2.4s ease-in-out infinite}.fr{animation:lunge2 2.4s ease-in-out infinite}"
                    "@keyframes lunge{0%,100%{transform:none}40%{transform:translateX(" + n(w * 0.08) + "px)}"
                    "55%{transform:translateX(-" + n(w * 0.03) + "px)}}"
@@ -848,7 +871,84 @@ def motif_network(doc, data, box, mini, t0):
     return "".join(out)
 
 
-MOTIFS = {"cad": motif_cad, "catalog": motif_catalog, "eye": motif_eye, "face": motif_face, "terminal": motif_terminal,
+def _icon(kind, X, Y, r):
+    """Small line icons drawn round (X, Y) at radius r, in the background colour on an accent node."""
+    st = f'fill="none" stroke="var(--bg)" stroke-width="{n(r * 0.16)}" stroke-linecap="round" stroke-linejoin="round"'
+    a = r * 0.5
+    if kind == "chip":
+        pins = "".join(f"M{n(X + d)} {n(Y - a)}v{n(-a * .45)}M{n(X + d)} {n(Y + a)}v{n(a * .45)}"
+                       f"M{n(X - a)} {n(Y + d)}h{n(-a * .45)}M{n(X + a)} {n(Y + d)}h{n(a * .45)}" for d in (-a * .45, a * .45))
+        return f'<rect x="{n(X - a)}" y="{n(Y - a)}" width="{n(2 * a)}" height="{n(2 * a)}" rx="{n(a * .2)}" {st}/><path d="{pins}" {st}/>'
+    if kind == "gear":
+        teeth = "".join(f"M{n(X + math.cos(t) * a * .75)} {n(Y + math.sin(t) * a * .75)}L{n(X + math.cos(t) * a * 1.25)} "
+                        f"{n(Y + math.sin(t) * a * 1.25)}" for t in [k * math.pi / 4 for k in range(8)])
+        return f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(a * .75)}" {st}/><circle cx="{n(X)}" cy="{n(Y)}" r="{n(a * .25)}" {st}/><path d="{teeth}" {st}/>'
+    if kind == "robot":
+        return (f'<rect x="{n(X - a)}" y="{n(Y - a * .55)}" width="{n(2 * a)}" height="{n(a * 1.5)}" rx="{n(a * .35)}" {st}/>'
+                f'<path d="M{n(X)} {n(Y - a * .55)}v{n(-a * .5)}M{n(X - a * .4)} {n(Y + a * .15)}h.01M{n(X + a * .4)} {n(Y + a * .15)}h.01" {st}/>')
+    if kind == "code":
+        return f'<path d="M{n(X - a * .35)} {n(Y - a * .7)}L{n(X - a)} {n(Y)}L{n(X - a * .35)} {n(Y + a * .7)}M{n(X + a * .35)} {n(Y - a * .7)}L{n(X + a)} {n(Y)}L{n(X + a * .35)} {n(Y + a * .7)}M{n(X + a * .15)} {n(Y - a * .8)}L{n(X - a * .15)} {n(Y + a * .8)}" {st}/>'
+    if kind == "brain":
+        P = [(X - a, Y - a * .6), (X - a, Y + a * .6), (X, Y - a * .9), (X, Y), (X, Y + a * .9), (X + a, Y)]
+        E = [(0, 2), (0, 3), (1, 3), (1, 4), (2, 5), (3, 5), (4, 5)]
+        return (f'<path d="{"".join(f"M{n(P[i][0])} {n(P[i][1])}L{n(P[j][0])} {n(P[j][1])}" for i, j in E)}" {st}/>'
+                + "".join(f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(a * .2)}" fill="var(--bg)"/>' for px, py in P))
+    # window
+    return (f'<rect x="{n(X - a)}" y="{n(Y - a * .8)}" width="{n(2 * a)}" height="{n(a * 1.6)}" rx="{n(a * .2)}" {st}/>'
+            f'<path d="M{n(X - a)} {n(Y - a * .3)}h{n(2 * a)}" {st}/>')
+
+
+def motif_stack(doc, data, box, mini, t0):
+    """Full stack, hardware and software: labelled layers from PCBs at the bottom to apps at the top, built up one
+    layer at a time, every layer's nodes wired to the next, and signals pulsing up and down the wires. The base style
+    is the whole stack with every layer and label."""
+    x, y, w, h = box
+    layers = data.get("layers") or [["PCB · ELECTRONICS", "chip"], ["CAD · MECHANICAL", "gear"], ["MOTORS · ROBOTS", "robot"],
+                                     ["FIRMWARE", "code"], ["EDGE AI", "brain"], ["APPS · UI", "window"]]
+    k = len(layers)
+    lh = h / k
+    lab = 11 if mini else 14
+    lw = max(doc.width(l[0], "medium", lab) for l in layers) + 18
+    nx0, nx1 = x + lw + 10, x + w - 14
+    cols = 3
+    r = min(lh * 0.34, 16)
+    pos = []
+    for i in range(k):                                  # bottom layer first
+        yc = y + h - lh * (i + 0.5)
+        shift = (nx1 - nx0) / (cols - 1) * (0.18 if i % 2 else -0.0)
+        pos.append([(nx0 + r + shift + (nx1 - nx0 - 2 * r - abs(shift)) * j / (cols - 1), yc) for j in range(cols)])
+    out = []
+    for i, (name, icon) in enumerate(layers):
+        yc = pos[i][0][1]
+        hw = i < 3
+        out.append(f'<g class="in"{_delay(t0 + 0.12 * i)}><rect x="{n(x)}" y="{n(yc - lh / 2 + 3)}" width="{n(w)}" height="{n(lh - 6)}" '
+                   f'rx="{n(min(10, lh / 3))}" fill="var(--{"a1" if hw else "a2"})" fill-opacity=".10" stroke="var(--{"a1" if hw else "a2"})" '
+                   f'stroke-opacity=".35"/>{doc.text(name, "medium", lab, x + 10, yc + lab * 0.36, fill="var(--ink)")}</g>')
+    edges = []
+    for i in range(k - 1):
+        for j in range(cols):
+            for jj in (j, j + 1):
+                if jj < cols:
+                    edges.append((pos[i][j], pos[i + 1][jj], i))
+    wire = "".join(f"M{n(a[0])} {n(a[1])}L{n(b[0])} {n(b[1])}" for a, b, _ in edges)
+    out.append(f'<path d="{wire}" stroke="var(--a2)" stroke-width="7" stroke-opacity=".16" fill="none"/>')
+    out.append(f'<path d="{wire}" class="wire" stroke="var(--edge)" stroke-width="2.4" fill="none"/>')
+    for e, (a, b, i) in enumerate(edges):
+        up = e % 2 == 0
+        p0, p1 = (a, b) if up else (b, a)
+        out.append(f'<path class="pulse" pathLength="1" d="M{n(p0[0])} {n(p0[1])}L{n(p1[0])} {n(p1[1])}" '
+                   f'stroke="var(--{"a1" if up else "a2"})" style="animation-delay:{n(t0 + 1.2 + (e * 0.37) % 2.4, 2)}s"/>')
+    for i, (name, icon) in enumerate(layers):
+        for j, (X, Y) in enumerate(pos[i]):
+            out.append(f'<g class="in"{_delay(t0 + 0.12 * i + 0.05 * j)}><circle cx="{n(X)}" cy="{n(Y)}" r="{n(r)}" '
+                       f'fill="var(--{"a1" if i < 3 else "a2"})" stroke="var(--bg)" stroke-width="2"/>{_icon(icon, X, Y, r)}</g>')
+    doc.css.append(".pulse{fill:none;stroke-width:4.5;stroke-linecap:round;stroke-dasharray:.14 .86;stroke-dashoffset:1;"
+                   "opacity:0;animation:pulse 2.4s linear infinite}"
+                   "@keyframes pulse{0%{stroke-dashoffset:1.14;opacity:1}90%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}")
+    return "".join(out)
+
+
+MOTIFS = {"cad": motif_cad, "stack": motif_stack, "catalog": motif_catalog, "eye": motif_eye, "face": motif_face, "terminal": motif_terminal,
           "circuit": motif_circuit, "chart": motif_chart, "dial": motif_dial, "slides": motif_slides,
           "linkage": motif_linkage, "wave": motif_wave, "crystal": motif_crystal, "radar": motif_radar,
           "fight": motif_fight, "network": motif_network}
@@ -873,7 +973,7 @@ def _sketch_title(doc, title, x0, base, s, adv, mini):
     upm, asc, desc, cap, xh = G["upm"], G["asc"], G["desc"], G["cap"], G["xheight"]
     tr = f"translate({n(x0)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
     g = G["weights"]["bold"]
-    t0, stagger, dur = (0.15, 0.035, 1.5) if mini else (0.25, 0.05, 2.1)
+    t0, stagger, dur = (0.1, 0.03, 0.9) if mini else (0.1, 0.035, 1.1)
     t_end = t0 + 0.3 + stagger * (len(title) - 1) + dur            # the last letter is solid
     # graph paper behind the name, aligned to its left edge and baseline
     cell = 8 if mini else 12
@@ -918,6 +1018,125 @@ def _sketch_title(doc, title, x0, base, s, adv, mini):
 
 
 
+LAYOUT = {  # hero: a README's opening banner; spot: a large profile card; margin, name cap, tagline size/lines/width
+    "hero": dict(margin=48, fs_max=150, tsize=27, tlines=2, twidth=560, cs=16, ch=34, chip_w=600),
+    "spot": dict(margin=34, fs_max=112, tsize=29, tlines=3, twidth=400, cs=17, ch=34, chip_w=420),
+}
+
+
+def _chip(doc, c, x, y, cs, ch, cap, mini, delay=None):
+    cw = doc.width(c, "medium", cs) + (24 if mini else 34)
+    dot = c == "private"
+    svg = (f'<g class="chip{" in" if delay is not None else ""}"{_delay(delay) if delay is not None else ""}>'
+           f'<rect x="{n(x)}" y="{n(y)}" width="{n(cw)}" height="{ch}" rx="{n(ch / 2)}" class="{"cpv" if dot else "cbg"}"/>'
+           f'<circle cx="{n(x + (11 if mini else 14))}" cy="{n(y + ch / 2)}" r="{n(3.5 if mini else 4)}" fill="var(--a1)"/>'
+           f'{doc.text(c, "medium", cs, x + (20 if mini else 25), y + ch / 2 + cs * cap / 2, fill="var(--muted)")}</g>')
+    return svg, cw
+
+
+def _card_text(doc, spec, title, W, H, adv, cap):
+    """A profile card, made to be read at a third of a README's width: the name set large and solid from the first
+    frame (cards often start animating only once scrolled into view, so nothing a reader needs may wait on a
+    timeline), a three-line tagline, one chip, and the motif to the right. Only a quick underline and the motif move."""
+    margin = 26
+    upm = glyphs()["upm"]
+    fs = min(72, (W - margin * 2) / (adv / upm))
+    s = fs / upm
+    base = margin + cap * fs
+    tr = f"translate({n(margin)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
+    doc.defs.append(f'<linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{n(adv, 0)}" y2="0">'
+                    f'<stop offset="0" stop-color="var(--a1)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient>')
+    out = [f'<g transform="{tr}" fill="url(#ng)">{doc.uses(title, "bold")}</g>']
+    y = base + max(10, 0.2 * fs + 4)
+    out.append(f'<rect class="ul" x="{margin}" y="{n(y)}" width="64" height="5" rx="2.5" fill="url(#gr)"/>')
+    name_end = margin + adv * s + 18
+    beside = W - margin - name_end >= W * 0.36          # a short name leaves the full height beside it free
+    left = max(name_end, W * 0.6) if beside else W * 0.6
+    box = (left, 18, W - 14 - left, H - 36) if beside else (left, y + 4, W - 14 - left, H - y - 18)
+    lines, tsize = wrap(doc, spec.get("tagline", ""), "medium", 28, left - margin - 14, 3)
+    y += 14 + tsize * cap
+    for i, line in enumerate(lines):
+        out.append(doc.text(line, "medium", tsize, margin, y + i * tsize * 1.28, fill="var(--ink)"))
+    y_end = y + (len(lines) - 1) * tsize * 1.28
+    chips = (["private"] if spec.get("private") else []) + spec.get("facts", [])[:1]
+    cs, ch = 15, 28
+    yy = H - margin - ch + 6
+    x = margin
+    cta = spec.get("cta")
+    if cta and yy > y_end + 8:                      # a call to action: the card links there
+        fs, ph = 17, 32
+        yy = H - margin - ph + 6
+        tw = doc.width(cta, "medium", fs)
+        pw = tw + 50
+        icon = (f'<path d="M{n(x + 15)} {n(yy + 9)}l13 7-13 7z" fill="var(--bg)"/>' if spec.get("cta_icon") == "play" else
+                f'<path d="M{n(x + 13)} {n(yy + ph / 2)}h14m-5-5 5 5-5 5" fill="none" stroke="var(--bg)" stroke-width="2.4" '
+                f'stroke-linecap="round" stroke-linejoin="round"/>')
+        out.append(f'<g class="cta"><rect x="{n(x)}" y="{n(yy)}" width="{n(pw)}" height="{ph}" rx="{ph / 2}" fill="var(--a1)"/>'
+                   f'{icon}{doc.text(cta, "medium", fs, x + 37, yy + ph / 2 + fs * cap / 2, fill="var(--bg)")}</g>')
+        x += pw + 8
+        doc.css.append(".cta{animation:cta 2.4s 1s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
+        yy += (ph - ch) / 2
+        chips = chips[:1] if x + 90 < left else []
+    if chips and yy > y_end + 8:
+        svg, _ = _chip(doc, chips[0], x, yy, cs, ch, cap, True)
+        out.append(svg)
+    return "".join(out), "", 0.0, box
+
+
+def _hero_text(doc, spec, title, kind, W, H, adv, cap):
+    """A README hero or a profile spotlight card: the name grows from a drafting sketch, then the tagline and chips
+    fade in; the motif takes the space the name leaves."""
+    L = LAYOUT[kind]
+    margin = L["margin"]
+    upm = glyphs()["upm"]
+    fs = min(L["fs_max"], (W - margin * 2) / (adv / upm))
+    base = margin + cap * fs + 4
+    s = fs / upm
+    tr = f"translate({n(margin)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
+    doc.defs.append(f'<linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{n(adv, 0)}" y2="0">'
+                    f'<stop offset="0" stop-color="var(--a1)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient>')
+    out = []
+    letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, False)
+    out.append(letters_svg)
+    doc.defs.append(f'<clipPath id="nc" transform="{tr}">{doc.uses(title, "bold")}</clipPath>')
+    out.append(f'<g clip-path="url(#nc)"><rect class="sh" x="{n(margin - 160)}" y="{n(margin - 10)}" width="120" '
+               f'height="{n(fs + 20)}" fill="#fff" transform="skewX(-20)"/></g>')
+    y = base + max(22, 0.2 * fs + 8)                    # clear of descenders
+    out.append(f'<rect class="ul" x="{n(margin)}" y="{n(y)}" width="132" height="6" rx="3" fill="url(#gr)"/>')
+    name_end = margin + adv * s + 24
+    if W - margin - name_end >= W * 0.35:               # a short name leaves the full height beside it free
+        left = max(name_end, W * 0.53)
+        box = (left, 22, W - margin - left, H - 44)
+    else:
+        left = W * 0.53
+        box = (left, base + 30, W * 0.47 - margin, H - base - 52)
+    twidth = min(L["twidth"], left - margin - 16)
+    lines, tsize = wrap(doc, spec.get("tagline", ""), "medium", L["tsize"], twidth, L["tlines"])
+    y += 24 + tsize * cap
+    for i, line in enumerate(lines):
+        out.append(f'<g class="tg in"{_delay(t_name * 0.6 + 0.1 * i)}>'
+                   f'{doc.text(line, "medium", tsize, margin, y + i * tsize * 1.3, fill="var(--ink)")}</g>')
+    y_text_end = y + (len(lines) - 1) * tsize * 1.3
+    cs, ch = L["cs"], L["ch"]
+    rows = [[]]
+    for c in spec.get("facts", []):
+        cw = doc.width(c, "medium", cs) + 34
+        if rows[-1] and sum(r[1] + 8 for r in rows[-1]) + cw > min(L["chip_w"], left - margin - 8):
+            rows.append([])
+        rows[-1].append((c, cw))
+    rows = [r for r in rows if r]
+    for ri, row in enumerate(reversed(rows)):
+        x = margin
+        yy = H - margin - ch - ri * (ch + 8)
+        if yy < y_text_end + 10:
+            break
+        for ci, (c, cw) in enumerate(row):
+            svg, _ = _chip(doc, c, x, yy, cs, ch, cap, False, t_name + 0.15 * (ci + ri * 3))
+            out.append(svg)
+            x += cw + 8
+    return "".join(out), sketch_css, t_name, box
+
+
 def render(spec: dict, theme: str) -> str:
     kind = spec.get("kind", "hero")
     W, H = SIZES[kind]
@@ -925,83 +1144,16 @@ def render(spec: dict, theme: str) -> str:
     doc = Doc()
     mini = kind == "card"
     title = spec.get("title", spec["name"])
-    margin = 24 if mini else 48
     body = []
-
-    # the name: as large as fits
     cap = glyphs()["cap"] / glyphs()["upm"]
-    if mini:
-        name_w, fs_max = W - margin * 2 - 212, 46
-    else:
-        name_w, fs_max = W - margin * 2, 150
-    fs = min(fs_max, name_w / (doc.width(title, "bold", 1000) / 1000))
-    base = margin + cap * fs + (2 if mini else 4)
-    s = fs / glyphs()["upm"]
     adv = doc.width(title, "bold", glyphs()["upm"])
-    tr = f"translate({n(margin)} {n(base)}) scale({n(s, 5)} {n(-s, 5)})"
-    doc.defs.append(f'<linearGradient id="ng" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="{n(adv, 0)}" y2="0">'
-                    f'<stop offset="0" stop-color="var(--a1)"/><stop offset="1" stop-color="var(--a2)"/></linearGradient>')
-    letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, mini)
-    body.append(letters_svg)
-    if not mini:
-        doc.defs.append(f'<clipPath id="nc" transform="{tr}">{doc.uses(title, "bold")}</clipPath>')
-        body.append(f'<g clip-path="url(#nc)"><rect class="sh" x="{n(margin - 160)}" y="{n(margin - 10)}" width="120" '
-                    f'height="{n(fs + 20)}" fill="#fff" transform="skewX(-20)"/></g>')
-
-    # underline, tagline
-    y = base + max(12 if mini else 22, 0.2 * fs + (4 if mini else 8))      # clear of descenders
-    body.append(f'<rect class="ul" x="{n(margin)}" y="{n(y)}" width="{n(60 if mini else 132)}" height="{n(4 if mini else 6)}" '
-                f'rx="3" fill="url(#gr)"/>')
-    tsize, tmax = (17, 3) if mini else (27, 2)
-    twidth = (W - margin * 2 - 212) if mini else 560
-    lines, tsize = wrap(doc, spec.get("tagline", ""), "medium", tsize, twidth, tmax)
-    y += (16 if mini else 24) + tsize * cap
-    for i, line in enumerate(lines):
-        body.append(f'<g class="tg in"{_delay(t_name * 0.6 + 0.1 * i)}>'
-                    f'{doc.text(line, "medium", tsize, margin, y + i * tsize * 1.3, fill="var(--ink)")}</g>')
-    y_text_end = y + (len(lines) - 1) * tsize * 1.3
-
-    # chips (facts), from the bottom up
-    chips = spec.get("facts", [])
-    if mini and spec.get("private"):
-        chips = ["private"] + chips[:1]
-    cs = 13 if mini else 16
-    ch = 24 if mini else 34
-    cx, cy = margin, H - margin - ch
-    rows = [[]]
-    limit = (W - margin * 2 - 212) if mini else 600
-    for c in chips:
-        cw = doc.width(c, "medium", cs) + (24 if mini else 34)
-        if rows[-1] and sum(r[1] + 8 for r in rows[-1]) + cw > limit:
-            rows.append([])
-        rows[-1].append((c, cw))
-    rows = [r for r in rows if r]
     if mini:
-        rows = rows[:1]
-    for ri, row in enumerate(reversed(rows)):
-        x = margin
-        yy = cy - ri * (ch + 8)
-        if yy < y_text_end + 10:
-            break
-        for ci, (c, cw) in enumerate(row):
-            dot = c == "private"
-            body.append(f'<g class="chip in"{_delay(t_name + 0.15 * (ci + ri * 3))}><rect x="{n(x)}" y="{n(yy)}" width="{n(cw)}" '
-                        f'height="{ch}" rx="{n(ch / 2)}" class="{"cpv" if dot else "cbg"}"/>'
-                        f'<circle cx="{n(x + (10 if mini else 14))}" cy="{n(yy + ch / 2)}" r="{n(3 if mini else 4)}" fill="var(--a1)"/>'
-                        f'{doc.text(c, "medium", cs, x + (18 if mini else 25), yy + ch / 2 + cs * cap / 2, fill="var(--muted)")}</g>')
-            x += cw + 8
-
-    # the motif
-    m = motif_data(spec)
-    if mini:
-        box = (W - margin - 196, 16, 196, H - 32)
+        body_svg, sketch_css, t_name, box = _card_text(doc, spec, title, W, H, adv, cap)
+        body.append(body_svg)
     else:
-        name_end = margin + adv * s + 24
-        if W - margin - name_end >= W * 0.35:           # a short name leaves the full height beside it free
-            left = max(name_end, W * 0.53)
-            box = (left, 22, W - margin - left, H - 44)
-        else:
-            box = (W * 0.53, base + 30, W * 0.47 - margin, H - base - 52)
+        body_svg, sketch_css, t_name, box = _hero_text(doc, spec, title, kind, W, H, adv, cap)
+        body.append(body_svg)
+    m = motif_data(spec)
     motif_svg = MOTIFS[m["kind"]](doc, m, box, mini, 0.3 if mini else 0.5)
 
     label = spec.get("alt") or f"{title}: {spec.get('tagline', '')}".strip(": ")
@@ -1158,7 +1310,7 @@ def outputs(spec: dict, roots: dict):
         root = ROOT if repo == THIS_REPO else roots.get(repo)
         if root is None:
             continue
-        for t in spec.get("themes", ["light", "dark"]):
+        for t in spec.get("themes", THEMES[spec.get("kind", "hero")]):
             out.append((t, Path(root) / (f"{rel}.svg" if t == "auto" else f"{rel}-{t}.svg")))
     return out
 

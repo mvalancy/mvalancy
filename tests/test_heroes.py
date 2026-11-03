@@ -25,7 +25,7 @@ def sample(kind, theme="dark", **more):
 
 class Sample(unittest.TestCase):
     def test_hero_and_card_pass_the_embed_rules(self):
-        for kind in ("hero", "card"):
+        for kind in ("hero", "spot", "card"):
             for theme in ("light", "dark", "auto"):
                 with self.subTest(kind=kind, theme=theme):
                     text = sample(kind, theme)
@@ -53,6 +53,11 @@ class Sample(unittest.TestCase):
                     text = sample(size, motif=dict(data, kind=kind))
                     self.assertEqual(heroes.problems(text, size), [])
 
+    def test_the_stack_motif_fits_a_hero(self):
+        text = sample("hero", motif={"kind": "stack"})
+        self.assertEqual(heroes.problems(text, "hero"), [])
+        self.assertIn('class="pulse', text)
+
     def test_a_posed_group_scans_and_rests_still_under_reduced_motion(self):
         square = lambda x0: {"plate": [[[x0, 0], [x0 + 10, 0], [x0 + 10, 10], [x0, 10]]]}
         parts = [{"name": "base", "group": "base", "from": [0, 0], "regions": dict(square(0), glass=square(5)["plate"]),
@@ -70,6 +75,25 @@ class Sample(unittest.TestCase):
         card = sample("card", motif=motif)                            # cards keep only the rest pose
         self.assertNotIn("ps0", card)
         self.assertEqual(heroes.problems(card, "card"), [])
+
+    def test_a_card_reads_in_its_first_frame(self):
+        """Cards often start scrolled off screen, so the name and tagline are drawn still, not sketched in."""
+        card = sample("card", tagline="Short line.", cta="Play", cta_icon="play")
+        self.assertEqual(heroes.problems(card, "card"), [])
+        self.assertIn('<g class="cta">', card)
+        self.assertIn('l13 7-13 7z', card)                          # the play triangle
+        self.assertIn('<g class="cta">', sample("card", cta="Visit"))
+        self.assertNotIn('l13 7-13 7z', sample("card", cta="Visit"))
+
+    def test_checks_and_marks_draw_under_a_cad_motif(self):
+        square = [[[0, 0], [10, 0], [10, 10], [0, 10]]]
+        motif = {"kind": "cad", "parts": [{"name": "box", "group": "box", "from": [0, 0], "regions": {"accent": square},
+                                           "lines": [[[0, 0], [10, 10]]]}],
+                 "marks": [[2, 2], [8, 8]], "checks": ["inserts", "fit"]}
+        for size in ("spot", "card"):
+            text = sample(size, motif=motif)
+            self.assertEqual(heroes.problems(text, size), [])
+            self.assertEqual(text.count('stroke-linecap="round" stroke-linejoin="round"/></g>'), 2)  # one per mark
 
     def test_rendering_is_deterministic(self):
         self.assertEqual(sample("hero"), sample("hero"))

@@ -320,6 +320,9 @@ def main(argv=None) -> int:
                       "commit": git("rev-parse", "HEAD"), "inputs": inputs,
                       "parts": {g: sorted(v) for g, v in sorted(names.items())}}
     spec["parts"] = parts
+    if hasattr(scene, "marks"):                          # named points (e.g. joints to tick off), on the drawing plane
+        R, D, _ = camera(spec["view"])
+        spec["marks"] = [[round(float(np.dot(p, R)), 1), round(float(np.dot(p, D)), 1)] for p in scene.marks(source)]
     spec_path.write_text(json.dumps(spec, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"wrote {spec_path} ({spec_path.stat().st_size} bytes)")
     return 0
