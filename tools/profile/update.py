@@ -8,7 +8,7 @@ Two blocks are rewritten in place, each between its own marker comments:
 * ``spotlight``: the projects that have spotlight art (``SPOT``), newest default-branch commit first, each as its animated
   card with live shields (latest release, or last commit when there is none, and stars) and a "what's new" line
   taken from its latest non-merge commit on the default branch.
-* ``activity``: releases from the last two months, and the other repositories with the newest commits.
+* ``activity``: releases from the last two months.
 
 Only public, non-archived, non-fork repositories of the accounts in ``ACCOUNTS`` are read, and only through the
 GitHub REST API (shields.io draws the badges in the reader's browser). Nothing else is called. Text that comes from
@@ -40,7 +40,7 @@ SPOT = {
     "mvalancy/j501-agx-orin": dict(art="assets/spot/j501-agx-orin.svg",
                                    alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."),
 }
-RELEASES, ACTIVE, RECENT = 4, 6, 60
+RELEASES, RECENT = 4, 60
 
 
 def fetch(path: str):
@@ -61,7 +61,7 @@ def fetch(path: str):
 
 
 def clean(text: str, limit: int = 80) -> str:
-    """One line of plain text, safe inside HTML in a README: no tags, links, markdown, emoji shortcodes or mentions."""
+    """One line of plain text, safe inside an HTML block in a README: no tags, links or mentions, ``&`` escaped."""
     line = (text or "").strip().splitlines()[0] if (text or "").strip() else ""
     line = re.sub(r"https?://\S+", "", line)
     line = re.sub(r"[`<>\\]", "", line)
@@ -92,7 +92,7 @@ def last_commit(full: str, get=fetch):
     for c in get(f"/repos/{full}/commits?per_page=20") or []:
         msg = c["commit"]["message"]
         if len(c.get("parents", [])) == 1 and not msg.startswith("Merge "):
-            return c["commit"]["author"]["date"], clean(msg, 64)
+            return c["commit"]["author"]["date"], clean(msg, 48)
     return None
 
 
@@ -128,6 +128,8 @@ def badge(path: str, alt: str, query: str = "") -> str:
 def spotlight(data: dict) -> str:
     spots = sorted((r for r in data["repos"] if r["full"] in SPOT),
                    key=lambda r: (r["commit"][0] if r["commit"] else "", r["full"]), reverse=True)
+    if not spots:                                       # never commit an empty spotlight: fail the run instead
+        raise SystemExit("no spotlight repository came back from the API")
     cells = []
     for r in spots:
         s = SPOT[r["full"]]
@@ -147,11 +149,7 @@ def spotlight(data: dict) -> str:
 def activity(data: dict) -> str:
     rel = " · ".join(f'<a href="{x["url"]}">{html.escape(x["name"])} {x["tag"]}</a> {day(x["at"])}'
                      for x in data["releases"][:RELEASES])
-    recent = sorted((r for r in data["repos"] if r["commit"] and r["full"] not in SPOT),
-                    key=lambda r: (r["commit"][0], r["full"]), reverse=True)
-    act = " · ".join(f'<a href="{r["url"]}">{html.escape(r["name"])}</a> {day(r["commit"][0])}' for r in recent[:ACTIVE])
-    lines = ([f"<b>Latest releases</b> · {rel}"] if rel else []) + ([f"<b>Recently active</b> · {act}"] if act else [])
-    return "<p align=\"center\"><sub>" + "<br>\n".join(lines) + "</sub></p>"
+    return f'<p align="center"><sub><b>Latest releases</b> · {rel}</sub></p>' if rel else ""
 
 
 def splice(text: str, name: str, body: str) -> str:

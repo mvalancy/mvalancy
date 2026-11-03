@@ -93,12 +93,11 @@ class ProfileUpdate(unittest.TestCase):
         self.assertTrue(all(len(line) < 400 for line in spot.splitlines()))
         self.assertIn("…", spot)  # the long gyropup line is cut
 
-    def test_activity_lists_recent_stable_releases_and_other_repos(self):
+    def test_activity_lists_recent_stable_releases(self):
         act = self.out.split("<!-- activity:start -->")[1]
         self.assertIn("cad-agent v0.17.0", act)
-        self.assertNotIn("rc", act.split("Recently active")[0])
+        self.assertNotIn("rc<", act)
         self.assertNotIn("lesson-plans v1", act)  # months older than the newest release
-        self.assertIn("lesson-plans</a> Oct 28", act)
         self.assertTrue(self.out.startswith("top\n") and self.out.endswith("end\n"))
 
     def test_rerun_is_byte_identical(self):
