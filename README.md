@@ -18,7 +18,7 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <td width="50%" valign="top">
 <a href="https://gyropup.com"><img src="assets/spot/gyropup-dark.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
 <br><a href="https://github.com/Valpatel/gyropup"><img src="https://img.shields.io/github/last-commit/Valpatel/gyropup?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/Valpatel/gyropup?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 3 · Turret lid snaps: re-render turret.png with…</sub>
+<br><sub><b>New</b> · Nov 4 · Diagrams inventory: 11 published diagrams (the…</sub>
 </td>
 </tr>
 <tr>
@@ -30,7 +30,7 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <td width="50%" valign="top">
 <a href="https://github.com/mvalancy/j501-agx-orin"><img src="assets/spot/j501-agx-orin-dark.svg" width="100%" alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."></a>
 <br><a href="https://github.com/mvalancy/j501-agx-orin"><img src="https://img.shields.io/github/last-commit/mvalancy/j501-agx-orin?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/mvalancy/j501-agx-orin?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 2 · docs: animated hero banner at the top of the…</sub>
+<br><sub><b>New</b> · Nov 3 · Regenerate the banner with mvalancy/mvalancy#6…</sub>
 </td>
 </tr>
 </table>
