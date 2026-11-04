@@ -53,6 +53,23 @@ class Sample(unittest.TestCase):
                     text = sample(size, motif=dict(data, kind=kind))
                     self.assertEqual(heroes.problems(text, size), [])
 
+    def test_the_board_and_fractal_motifs_loop_in_step(self):
+        """GraphDone's board and CodeGraph's fractal: within budget at every size, and every ambient animation's period
+        divides the loop's cycle, so a frame and the frame a cycle later are the same."""
+        board = {"kind": "board", "items": [["TASK", "Set up a database", "Alice"], ["TASK", "Write a schema", "agent"],
+                                            ["MILESTONE", "Ship it", "Bob"]], "deps": [[0, 1], [1, 2]], "outcome": "Done"}
+        for motif in (board, {"kind": "fractal"}):
+            for kind in ("hero", "spot", "card"):
+                with self.subTest(motif=motif["kind"], kind=kind):
+                    text = sample(kind, motif=motif)
+                    self.assertEqual(heroes.problems(text, kind), [])
+                    T = float(re.search(r'animation:L\d+ ([\d.]+)s', text).group(1))
+                    for name, dur in re.findall(r'animation:(gd\w+|cg\w+) ([\d.]+)s[^;}"]*infinite', text):
+                        k = T / float(dur)
+                        self.assertAlmostEqual(k, round(k), places=2, msg=(name, dur, T))
+        card = sample("card", motif={"kind": "fractal"})
+        self.assertEqual(card.count("<use href=\"#cge"), 4)          # the edges written once: graph, glow, data, depth
+
     def test_the_stack_motif_fits_a_hero(self):
         text = sample("hero", motif={"kind": "stack"})
         self.assertEqual(heroes.problems(text, "hero"), [])
