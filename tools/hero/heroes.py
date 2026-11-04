@@ -72,11 +72,21 @@ ACCENTS = {  # name: (light a1, light a2, dark a1, dark a2)
     "lime": ("#4d7c0f", "#0f766e", "#a3e635", "#34d399"),
     "gyropup": ("#bd3a12", "#287d8d", "#ff7a45", "#5cc8d6"),     # gyropup.com's --orange and --cyan
     "valpatel": ("#007f8c", "#00805a", "#00f0ff", "#05ffa1"),    # valpatel.com's cyan and signal green
+    "graphdone": ("#4f46e5", "#047857", "#818cf8", "#34d399"),   # GraphDone's logo indigo and its OUTCOME indigo; done green
+    "codegraph": ("#0e7490", "#a21caf", "#22d3ee", "#e879f9"),   # neon cyan and magenta
 }
 SURFACES = {  # palettes that bring their own surfaces and extra accents (a3 amber, a4 magenta), by theme
     "valpatel": {"dark": {"bg": "#05070a", "bg2": "#0a1016", "line": "#16232c", "edge": "#d8f6ff", "glow": ".18",
                           "a3": "#ffb000", "a4": "#ff2bd6"},
                  "light": {"bg": "#ffffff", "bg2": "#eef7f8", "edge": "#0b2530", "a3": "#a35a00", "a4": "#b0127f"}},
+    # GraphDone's app is a dark navy workspace; its AI agents are amber and its features sky blue (workItemConstants.tsx)
+    "graphdone": {"dark": {"bg": "#0b1020", "bg2": "#121a33", "line": "#26304d", "edge": "#c7d2fe", "f1": "#151d38",
+                           "f2": "#1b2545", "glow": ".2", "a3": "#fbbf24", "a4": "#38bdf8"},
+                  "light": {"bg": "#ffffff", "bg2": "#f1f3fd", "line": "#d9ddf0", "edge": "#1e1b4b", "f1": "#f6f7fe",
+                            "f2": "#eceefb", "a3": "#b45309", "a4": "#0369a1"}},
+    "codegraph": {"dark": {"bg": "#04050d", "bg2": "#0b0a20", "line": "#1d1f40", "edge": "#e0f7ff", "glow": ".28",
+                           "a3": "#a3e635", "a4": "#818cf8"},
+                  "light": {"bg": "#ffffff", "bg2": "#f3f1fd", "edge": "#0f0a2e", "a3": "#4d7c0f", "a4": "#4338ca"}},
 }
 
 
@@ -178,6 +188,7 @@ class Doc:
         self.defs = []
         self.ids = 0
         self.ambient = set()      # keyframes that play while the finished frame is up (a scan), not before it
+        self.periods = {}         # endless animations whose period render() sets to divide the loop's cycle: {name: near}
 
     def uid(self, stem: str) -> str:
         self.ids += 1
@@ -1257,10 +1268,338 @@ def motif_pcb(doc, data, box, mini, t0):
     return "".join(out)
 
 
+# GraphDone's own colours (packages/web/src/constants/workItemConstants.tsx): a work item's type, and COMPLETED
+GD_TYPES = {"TASK": "#4ade80", "FEATURE": "#38bdf8", "BUG": "#ef4444", "MILESTONE": "#fb923c", "EPIC": "#e879f9",
+            "IDEA": "#facc15", "OUTCOME": "#818cf8", "RESEARCH": "#2dd4bf", "REQUIREMENT": "#38bdf8"}
+GD_DONE = "#22c55e"
+# GraphDone's logo (docs/graphdone-logo.svg, 100 units square): an indigo disc, six work nodes round a white outcome
+GD_LOGO = [(30, 35, 4, "#fbbf24"), (70, 35, 4, "#fbbf24"), (50, 25, 5, "#10b981"), (25, 65, 4, "#f59e0b"),
+           (75, 65, 4, "#f59e0b"), (50, 75, 4, "#6b7280")]
+
+
+def _cycle(end: float) -> float:
+    """The loop's cycle (``_loop``) for a banner whose last intro ends at ``end`` seconds."""
+    return round(end + HOLD + RESET, 1)
+
+
+def _period(T: float, near: float) -> float:
+    """A period near ``near`` seconds that divides the cycle ``T``, so an ambient animation looks the same a cycle on."""
+    return T / max(1, round(T / near))
+
+
+def _tick_path(X, Y, r):
+    return f"M{n(X - r * .45)} {n(Y + r * .02)}l{n(r * .3)} {n(r * .32)}l{n(r * .58)} {n(-r * .64)}"
+
+
+def motif_board(doc, data, box, mini, t0):
+    """GraphDone: work coordinated through dependencies and outcomes. A list of work items from GraphDone's own seed
+    graph, each with its type, title and owner (a person, or an AI agent as a peer); their dependencies drawn as an
+    arc diagram down the left; every item wired to the outcome, which is GraphDone's logo. The items complete in
+    dependency order: the progress fills, a tick lands, the row lights, its dependency arcs and its wire to the
+    outcome light up and one of the logo's work nodes comes on. With every item done the outcome is reached and work
+    flows into it. The base style is the finished board."""
+    x, y, w, h = box
+    if not mini:
+        y, h = y + 10, h - 20
+    items = data["items"][: (data.get("mini_rows", 4) if mini else 6)]
+    N = len(items)
+    deps = [(a, b) for a, b in data.get("deps", []) if a < N and b < N]
+    order = [i for i in data.get("order", range(N)) if i < N]
+    order += [i for i in range(N) if i not in order]
+    cap = glyphs()["cap"] / glyphs()["upm"]
+    ow = min(w * 0.3, h * 0.62)                          # the outcome's column
+    rail = 14 if mini else 30                            # the dependency arcs, left of the list
+    lx0, lx1 = x + rail, x + w - ow - (12 if mini else 30)
+    gap = 5 if mini else 9
+    rh = (h - gap * (N - 1)) / N
+    rw = lx1 - lx0
+    cys = [y + i * (rh + gap) + rh / 2 for i in range(N)]
+    R = min(ow * 0.42, h * (0.2 if mini else 0.17))
+    ox, oy = x + w - ow / 2, y + h / 2 - (0 if mini else h * 0.09)
+    step = 0.45 if mini else 0.5
+    tc = t0 + (1.6 if mini else 1.9)
+    done = {i: tc + step * j for j, i in enumerate(order)}
+    t_final = tc + step * N + 0.6
+    out, arcs, lit_arcs, ports, fans, lit_fans, flows = [], [], [], [], [], [], []
+    ar = rh * (0.25 if mini else 0.27)
+    cr = rh * (0.17 if mini else 0.2)
+    # title size: one size for every row, the largest that fits them all
+    tx = lx0 + (8 if mini else 14) + 2 * ar + (7 if mini else 12)
+    room = lx1 - (6 if mini else 12) - 2 * cr - (8 if mini else 12) - tx
+    ts = min([14.5] + [14.5 * room / max(doc.width(it[1], "medium", 14.5), 1) for it in items])
+    for i, it in enumerate(items):
+        kind, title, who = it[0], it[1], it[2]
+        col = GD_TYPES.get(kind, "#9ca3af")
+        cy = cys[i]
+        ry = cy - rh / 2
+        rx = min(10, rh * 0.22)
+        body = [f'<rect x="{n(lx0)}" y="{n(ry)}" width="{n(rw)}" height="{n(rh)}" rx="{n(rx)}" class="gdr"/>',
+                f'<rect x="{n(lx0 + 4)}" y="{n(ry + rh * .2)}" width="3" height="{n(rh * .6)}" rx="1.5" fill="{col}"/>']
+        ax = lx0 + (8 if mini else 14) + ar
+        if who == "agent":                               # an AI agent: a hexagon with a robot
+            hexp = [(ax + ar * math.cos(math.pi / 6 + k * math.pi / 3), cy + ar * math.sin(math.pi / 6 + k * math.pi / 3))
+                    for k in range(6)]
+            body.append(f'<path d="{poly(hexp, True)}" fill="var(--a3)"/>{_icon("robot", ax, cy + ar * .06, ar * .95)}')
+        else:                                            # a person: their initial
+            fs = ar * 1.15
+            body.append(f'<circle cx="{n(ax)}" cy="{n(cy)}" r="{n(ar)}" fill="var(--a1)"/>'
+                        + doc.text(who[:1], "bold", fs, ax - doc.width(who[:1], "bold", fs) / 2, cy + fs * cap / 2,
+                                   fill="var(--bg)"))
+        kx = lx1 - (6 if mini else 12) - cr                    # the tick's centre
+        if mini:                                         # a card: a type bar, and the title as a bar that fills
+            bw = room * min(1, 0.45 + len(title) / 40)
+            body.append(f'<rect x="{n(tx)}" y="{n(cy - rh * .26)}" width="{n(min(26, room * .4))}" height="6" rx="3" '
+                        f'fill="{col}"/><rect x="{n(tx)}" y="{n(cy + rh * .08)}" width="{n(bw)}" height="6" rx="3" '
+                        f'class="gdt"/>')
+            bar = (tx, cy + rh * .08, bw, 6)
+        else:
+            cs = 9.5
+            cw = doc.width(kind, "bold", cs, 80) + 12
+            body.append(f'<rect x="{n(tx)}" y="{n(cy - rh * .36)}" width="{n(cw)}" height="15" rx="4" fill="{col}"/>'
+                        + doc.text(kind, "bold", cs, tx + 6, cy - rh * .36 + 7.5 + cs * cap / 2, fill="#0b1020", track=80)
+                        + doc.text(title, "medium", ts, tx, cy + rh * .3, fill="var(--ink)"))
+            pw = min(64, room - cw - 14)
+            bar = (kx - cr - 12 - pw, cy - rh * .36 + 5, pw, 5)
+            body.append(f'<rect x="{n(bar[0])}" y="{n(bar[1])}" width="{n(pw)}" height="5" rx="2.5" class="gdt"/>')
+        body.append(f'<circle cx="{n(kx)}" cy="{n(cy)}" r="{n(cr)}" class="gdo"/>')
+        t = done[i]
+        out.append(f'<g class="gdin"{_delay(t0 + 0.1 * i)}>{"".join(body)}'
+                   f'<rect x="{n(bar[0])}" y="{n(bar[1])}" width="{n(bar[2])}" height="{n(bar[3])}" rx="{n(bar[3] / 2)}" '
+                   f'fill="{GD_DONE}" class="gdp"{_delay(t - 0.45)}/>'
+                   f'<rect x="{n(lx0)}" y="{n(ry)}" width="{n(rw)}" height="{n(rh)}" rx="{n(rx)}" class="gdl"{_delay(t)}/>'
+                   f'<g class="gdk"{_delay(t)}><circle cx="{n(kx)}" cy="{n(cy)}" r="{n(cr)}" fill="{GD_DONE}"/>'
+                   f'<path d="{_tick_path(kx, cy, cr)}" class="gdv" stroke-width="{n(cr * .3)}"/></g></g>')
+        ports.append(f'<circle cx="{n(lx0)}" cy="{n(cy)}" r="{n(3 if mini else 4)}" class="gdq"/>'
+                     f'<circle cx="{n(lx0)}" cy="{n(cy)}" r="{n(3 if mini else 4)}" fill="var(--a1)" class="gdk"{_delay(t)}/>')
+        # the wire to the outcome, into the logo's rim facing the row
+        th = math.pi + (i - (N - 1) / 2) * (0.34 if mini else 0.3)
+        ex, ey = ox + (R + (9 if mini else 15)) * math.cos(th), oy + (R + (9 if mini else 15)) * math.sin(th)
+        d = (ex - lx1) * 0.5
+        wire = f"M{n(lx1)} {n(cy)}C{n(lx1 + d)} {n(cy)} {n(ex - d * .7)} {n(ey)} {n(ex)} {n(ey)}"
+        fans.append(wire)
+        lit_fans.append(f'<path d="{wire}" pathLength="1" class="gdw"{_delay(t)}/>')
+        flows.append(f'<path d="{wire}" pathLength="1" class="gdf" style="animation-delay:-{n(0.37 * i, 2)}s"/>')
+    for k, (a, b) in enumerate(deps):                   # the dependencies: an arc diagram, each into its dependant
+        ya, yb = cys[a], cys[b]
+        bulge = min(rail - 3, 6 + (5 if mini else 7) * abs(b - a)) * 1.33
+        arc = (f"M{n(lx0 - 3)} {n(ya)}C{n(lx0 - bulge)} {n(ya)} {n(lx0 - bulge)} {n(yb)} {n(lx0 - 3)} {n(yb)}")
+        arcs.append(arc)
+        lit_arcs.append(f'<path d="{arc}" pathLength="1" class="gdw"{_delay(done[a])}/>')
+    t_arcs = t0 + 0.8
+    out.insert(0, f'<g class="gdd"{_delay(t_arcs)}><path d="{"".join(arcs)}" class="gda"/>'
+                  f'<path d="{"".join(fans)}" class="gda"/></g>' + "".join(lit_arcs) + "".join(lit_fans))
+    out.append(f'<g class="gdin"{_delay(t0 + 0.4)}>{"".join(ports)}</g>')
+    # the outcome: GraphDone's logo, its work nodes coming on as the items complete
+    k = R / 48
+    L = lambda u, v: (ox + (u - 50) * k, oy + (v - 50) * k)
+    gid = doc.uid("gdg")
+    doc.defs.append(f'<radialGradient id="{gid}" cx=".4" cy=".3" r=".7"><stop offset="0" stop-color="#fff" '
+                    f'stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>')
+    spokes = "".join(f"M{n(L(u, v)[0])} {n(L(u, v)[1])}L{n(ox)} {n(oy)}" for u, v, _, _ in GD_LOGO)
+    logo = [f'<circle cx="{n(ox)}" cy="{n(oy)}" r="{n(R * 1.5)}" class="gdh"/>',
+            f'<circle cx="{n(ox)}" cy="{n(oy)}" r="{n(R)}" fill="#4f46e5"/>',
+            f'<path d="{spokes}" class="gds" stroke-width="{n(max(1.2, 2 * k), 1)}"/>']
+    sat = list(range(len(GD_LOGO)))
+    for j, (u, v, r, c) in enumerate(GD_LOGO):          # a node per completed item; the rest when the outcome is met
+        X, Y = L(u, v)
+        t = done[order[j]] + 0.55 if j < N else t_final
+        logo.append(f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(r * k * 1.25)}" fill="{c}" class="gdk"{_delay(t)}/>')
+    del sat
+    logo.append(f'<circle cx="{n(ox)}" cy="{n(oy)}" r="{n(R)}" fill="url(#{gid})"/>'
+                f'<circle cx="{n(ox)}" cy="{n(oy)}" r="{n(7 * k * 1.2)}" fill="#fff" stroke="#4f46e5" '
+                f'stroke-width="{n(2 * k)}"/>')
+    out.append(f'<g class="gdpop" style="transform-origin:{n(ox)}px {n(oy)}px;animation-delay:{n(t0 + 0.5, 2)}s">'
+               + "".join(logo) + "</g>")
+    # the outcome is reached: a ring goes round the logo, its label lights, and work flows into it
+    ring = f'<circle cx="{n(ox)}" cy="{n(oy)}" r="{n(R + (5 if mini else 8))}" pathLength="1" class="gdc"{_delay(t_final)}/>'
+    P, Pr = 1.7, 2.6
+    doc.periods.update(gdf=P, gdh=Pr, gdpi=Pr)
+    out.append(ring + f'<g class="gdfl"{_delay(t_final)}>{"".join(flows)}'
+               f'<circle cx="{n(ox)}" cy="{n(oy)}" r="{n(R)}" class="gdpi" style="transform-origin:{n(ox)}px {n(oy)}px"/></g>')
+    if not mini:                                         # its type and title under the logo
+        cs = 10
+        lab = "OUTCOME"
+        cw = doc.width(lab, "bold", cs, 80) + 14
+        ly = oy + R + 20
+        lines, tsz = wrap(doc, data.get("outcome", ""), "medium", 15, ow + 10, 2)
+        txt = "".join(doc.text(line, "medium", tsz, ox - doc.width(line, "medium", tsz) / 2, ly + 30 + tsz * cap + k2 * tsz * 1.3,
+                               fill="var(--ink)") for k2, line in enumerate(lines))
+        out.append(f'<g class="gdin"{_delay(t0 + 0.7)}><rect x="{n(ox - cw / 2)}" y="{n(ly)}" width="{n(cw)}" height="17" '
+                   f'rx="4" fill="{GD_TYPES["OUTCOME"]}"/>'
+                   + doc.text(lab, "bold", cs, ox - cw / 2 + 7, ly + 8.5 + cs * cap / 2, fill="#0b1020", track=80)
+                   + txt + "</g>")
+    doc.css.append(
+        ".gdr{fill:var(--f1);stroke:var(--line);stroke-width:1.2}.gdt{fill:var(--line)}.gdo{fill:none;stroke:var(--line);"
+        "stroke-width:2}.gdq{fill:var(--bg);stroke:var(--muted);stroke-width:1.5}"
+        ".gda{fill:none;stroke:var(--muted);stroke-width:1.4;stroke-opacity:.45;stroke-dasharray:3 4}"
+        ".gdw{fill:none;stroke:var(--a1);stroke-width:%s;stroke-linecap:round;stroke-dasharray:1;"
+        "animation:gddraw .6s ease-in-out both}@keyframes gddraw{from{stroke-dashoffset:1}}"
+        ".gdv{fill:none;stroke:var(--bg);stroke-linecap:round;stroke-linejoin:round}"
+        ".gdin{animation:gdin .6s cubic-bezier(.2,.8,.2,1) both}@keyframes gdin{from{opacity:0;transform:translateX(-14px)}}"
+        ".gdd{animation:gdfade .8s ease-out both}@keyframes gdfade{from{opacity:0}}"
+        ".gdp{transform-box:fill-box;transform-origin:0 0;animation:gdgrow .45s ease-in-out both}"
+        "@keyframes gdgrow{from{transform:scaleX(0)}}"
+        ".gdl{fill:%s;fill-opacity:.07;stroke:%s;stroke-width:1.6;animation:gdfade .5s ease-out both}"
+        ".gdk{transform-box:fill-box;transform-origin:50%% 50%%;animation:gdpop .4s cubic-bezier(.3,1.6,.5,1) both}"
+        "@keyframes gdpop{from{opacity:0;transform:scale(0)}}"
+        ".gdpop{animation:gdpop .7s cubic-bezier(.3,1.4,.5,1) both}"
+        ".gdh{fill:var(--a1);opacity:.13;transform-box:fill-box;transform-origin:50%% 50%%;"
+        "animation:gdh %ss ease-in-out infinite}@keyframes gdh{50%%{opacity:.26;transform:scale(1.06)}}"
+        ".gds{fill:none;stroke:#e5e7eb;stroke-opacity:.55;stroke-linecap:round}"
+        ".gdc{fill:none;stroke:%s;stroke-width:%s;stroke-linecap:round;stroke-dasharray:1;"
+        "animation:gddraw .8s ease-in-out both}"
+        ".gdfl{animation:gdfade .6s ease-out both}"
+        ".gdf{fill:none;stroke:var(--a2);stroke-width:%s;stroke-linecap:round;stroke-dasharray:.07 .93;"
+        "animation:gdf %ss linear infinite}@keyframes gdf{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"
+        ".gdpi{fill:none;stroke:%s;stroke-width:2;opacity:0;animation:gdpi %ss ease-out infinite}"
+        "@keyframes gdpi{0%%{opacity:.7;transform:scale(1)}100%%{opacity:0;transform:scale(1.6)}}"
+        % (n(1.6 if mini else 2.2, 1), GD_DONE, GD_DONE, n(Pr, 3), GD_DONE, n(2.5 if mini else 3.5, 1),
+           n(3 if mini else 4, 1), n(P, 3), GD_DONE, n(Pr, 3)))
+    return "".join(out)
+
+
+def _fractal(rnd, cx, cy, R, branch, radii):
+    """A radial code graph: a root, its modules, their files, their symbols, each level fanned out in its parent's
+    sector, with a little jitter. Returns the levels of nodes [(x, y, angle, sector, branch)] and the edges of each
+    level as curves from parent to child (so a dash moving along them runs outward)."""
+    levels = [[(cx, cy, -math.pi / 2, 2 * math.pi, 0)]]
+    edges = []
+    for L, b in enumerate(branch):
+        nxt, eds = [], []
+        for (px, py, a, sec, br) in levels[-1]:
+            sub = sec / b
+            for j in range(b):
+                aa = (a + sub * j) if L == 0 else (a + (j - (b - 1) / 2) * sub * 0.9)
+                aa += (rnd() - 0.5) * sub * 0.22
+                rr = R * radii[L + 1] * (1 + (rnd() - 0.5) * 0.1)
+                qx, qy = cx + rr * math.cos(aa), cy + rr * math.sin(aa)
+                nxt.append((qx, qy, aa, sub, j if L == 0 else br))
+                pr = math.hypot(px - cx, py - cy)        # bend outward: the control point is on the child's ray
+                kx, ky = cx + pr * math.cos(aa), cy + pr * math.sin(aa)
+                eds.append((j if L == 0 else br, f"M{n(px)} {n(py)}Q{n(kx)} {n(ky)} {n(qx)} {n(qy)}"))
+        levels.append(nxt)
+        edges.append(eds)
+    return levels, edges
+
+
+def motif_fractal(doc, data, box, mini, t0):
+    """CodeGraph: a code graph as a living fractal. A root blooms into modules, files and symbols, level by level, in
+    neon; dependency links cut across it; data streams outward along every edge; rings bloom from the modules; and
+    behind it the same graph repeats at every depth, zooming past forever, like a flight through the codebase. The
+    complexity is in a few groups moved by transform and opacity, not in thousands of animated nodes. The base style
+    is the grown graph with its depth layers at rest."""
+    x, y, w, h = box
+    if mini:                                             # a card: the graph takes the right of the card, under the name
+        x, y, w, h = x - 6, 64, w + 4, y + h + 10 - 64
+    rnd = Rand(data.get("seed", "codegraph"))
+    cx, cy = x + w / 2, y + h / 2
+    R = min(w, h) / 2 * 0.94
+    branch = data.get("branch") or ([5, 3, 3] if mini else [6, 3, 3])
+    radii = [0, .34, .66, .95]
+    levels, edges = _fractal(rnd, cx, cy, R, branch, radii)
+    nb = branch[0]
+    t_grow = t0 + 0.2
+    grow = 1.7
+    lvl_t = [t_grow + grow * r * 0.85 for r in radii]     # a level blooms as the reveal reaches it
+    t_end = lvl_t[-1] + 0.6
+    T = _cycle(t_end + 0.3)                               # a first guess; render() fits the periods to the real cycle
+    out = []
+    # the depth: the same graph, simplified, in three layers that zoom past forever (in defs, drawn by <use>)
+    fid, eid, lid = doc.uid("cgz"), doc.uid("cge"), doc.uid("cgl")
+    allp = "".join(e for eds in edges for _, e in eds)
+    leaves = "".join(f"M{n(q[0])} {n(q[1])}h0" for q in levels[-1])
+    # the edges and the symbols are written once and drawn by <use>: the graph, its glow, its data and its depth layers
+    doc.defs.append(f'<path id="{eid}" d="{allp}" class="cgv"/><path id="{lid}" d="{leaves}" class="cgv"/>'
+                    f'<g id="{fid}"><use href="#{eid}" class="cgzl"/><use href="#{lid}" class="cgzd"/></g>')
+    Pz = 4.5 if mini else 6
+    zs = [0.3 * 8 ** (q / 4) for q in range(5)]
+    frames = "".join(f"{q * 25}%{{transform:scale({n(s, 3)}) rotate({n(-30 + 15 * q)}deg)"
+                     + (";opacity:0" if q in (0, 4) else ";opacity:1" if q == 2 else "") + "}"
+                     for q, s in enumerate(zs))
+    nz = 4
+    for q in range(nz):
+        s0 = 0.3 * 8 ** ((q + 0.5) / nz)
+        out.append(f'<g class="cgz{" cgz2" if q % 2 else ""}" style="transform-origin:{n(cx)}px {n(cy)}px;'
+                   f'transform:scale({n(s0, 3)});opacity:{n(0.8 - 0.15 * q, 2)};animation-delay:-{n(Pz * (q + 0.5) / nz, 3)}s">'
+                   f'<use href="#{fid}"/></g>')
+    # warp streaks flying out of the root, past the depth layers
+    rays = []
+    for k in range(36 if mini else 48):
+        a = 2 * math.pi * (k + rnd() * 0.8) / (36 if mini else 48)
+        r0, r1 = R * (0.12 + 0.2 * rnd()), R * 2.8
+        rays.append(f"M{n(cx + r0 * math.cos(a))} {n(cy + r0 * math.sin(a))}L{n(cx + r1 * math.cos(a))} {n(cy + r1 * math.sin(a))}")
+    Pw = 1.2
+    out.append(f'<path d="{"".join(rays)}" class="cgw"/>')
+    # HUD rings round the graph, turning
+    out.append(f'<g class="cgu" style="transform-origin:{n(cx)}px {n(cy)}px">'
+               f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R * 1.07)}" class="cgr1"/>'
+               f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R * 1.15)}" class="cgr2"/></g>')
+    # the graph: a neon underglow and the edges, revealed outward from the root
+    links = []
+    l2 = levels[2]
+    for i in range(0, len(l2), 2):                        # dependencies across modules
+        a, b = l2[i], l2[(i * 7 + len(l2) // 3) % len(l2)]
+        if a[4] == b[4]:
+            continue
+        mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+        links.append(f"M{n(a[0])} {n(a[1])}Q{n(cx + (mx - cx) * .25)} {n(cy + (my - cy) * .25)} {n(b[0])} {n(b[1])}")
+    out.append(f'<g class="cgg"{_delay(t_grow)}><use href="#{eid}" class="cge0"/><use href="#{eid}" class="cge"/>'
+               f'<path d="{"".join(links)}" class="cgx"/></g>')
+    # data streaming outward along every edge, once the graph has grown
+    Pf = 1.4
+    doc.periods.update(cgz=Pz, cgw=Pw, cgu=T, cgf=Pf * 2, cgb=Pf * 2)
+    out.append(f'<g class="cgfl"{_delay(t_end - 0.3)}><use href="#{eid}" class="cgf"/>'
+               + "".join(f'<circle cx="{n(q[0])}" cy="{n(q[1])}" r="{n(R * .1)}" class="cgb" '
+                         f'style="animation-delay:-{n(Pf * 2 * k / nb, 2)}s"/>' for k, q in enumerate(levels[1]))
+               + "</g>")
+    # the nodes bloom level by level, each level burst out from the root
+    pop = lambda t, inner: (f'<g class="cgn" style="transform-origin:{n(cx)}px {n(cy)}px;animation-delay:{n(t, 2)}s">'
+                            f'{inner}</g>')
+    out.append(pop(lvl_t[3] - 0.05, f'<use href="#{lid}" class="cgd3"/>'))
+    out.append(pop(lvl_t[2], "".join(f'<circle cx="{n(q[0])}" cy="{n(q[1])}" r="{n(2.6 if mini else 3.2)}"/>'
+                                     for q in levels[2]).join(['<g class="cgd2">', "</g>"])))
+    out.append(pop(lvl_t[1], "".join(f'<circle cx="{n(q[0])}" cy="{n(q[1])}" r="{n(R * .085)}" class="cgh"/>'
+                                     f'<circle cx="{n(q[0])}" cy="{n(q[1])}" r="{n(R * .045)}" class="cgd1"/>'
+                                     for q in levels[1])))
+    hexp = [(cx + R * .11 * math.cos(math.pi / 6 + k * math.pi / 3), cy + R * .11 * math.sin(math.pi / 6 + k * math.pi / 3))
+            for k in range(6)]
+    out.append(pop(t_grow, f'<path d="{poly(hexp, True)}" class="cgo"/>'
+                           f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R * .045)}" class="cgc"/>'))
+    sw = 1.6 if mini else 1.3
+    doc.css.append(
+        ".cgv{vector-effect:non-scaling-stroke}"
+        ".cgzl{fill:none;stroke:var(--z,var(--a4));stroke-width:1.2;stroke-opacity:.8}"
+        ".cgzd{fill:none;stroke:var(--a1);stroke-width:2.6;stroke-linecap:round;stroke-opacity:.8}"
+        ".cgz{animation:cgz %ss linear infinite}@keyframes cgz{%s}.cgz2{--z:var(--a2)}"
+        ".cgw{fill:none;stroke:var(--edge);stroke-width:1.2;stroke-linecap:round;stroke-dasharray:5 31 2 34;"
+        "stroke-opacity:.32;animation:cgw %ss linear infinite}@keyframes cgw{to{stroke-dashoffset:-72}}"
+        ".cgu{animation:cgu %ss linear infinite}@keyframes cgu{to{transform:rotate(360deg)}}"
+        ".cgr1{fill:none;stroke:var(--a1);stroke-width:1.5;stroke-dasharray:1.5 6;stroke-opacity:.7}"
+        ".cgr2{fill:none;stroke:var(--a2);stroke-width:2;stroke-dasharray:46 14 6 14;stroke-opacity:.45}"
+        ".cge0{fill:none;stroke:var(--a1);stroke-width:%s;stroke-opacity:.13;stroke-linecap:round}"
+        ".cge{fill:none;stroke:var(--a1);stroke-width:%s;stroke-opacity:.85;stroke-linecap:round}"
+        ".cgx{fill:none;stroke:var(--a2);stroke-width:1;stroke-opacity:.55;stroke-dasharray:3 3}"
+        ".cgg{animation:cgg %ss cubic-bezier(.3,.6,.4,1) both}"
+        "@keyframes cgg{from{clip-path:circle(0%% at 50%% 50%%)}to{clip-path:circle(80%% at 50%% 50%%)}}"
+        ".cgfl{animation:cgfade .6s ease-out both}@keyframes cgfade{from{opacity:0}}"
+        ".cgf{fill:none;stroke:var(--edge);stroke-width:%s;stroke-linecap:round;stroke-dasharray:.1 13.9;"
+        "animation:cgf %ss linear infinite}@keyframes cgf{to{stroke-dashoffset:-28}}"
+        ".cgb{fill:none;stroke:var(--a2);stroke-width:1.5;opacity:0;transform-box:fill-box;transform-origin:50%% 50%%;"
+        "animation:cgb %ss ease-out infinite}@keyframes cgb{0%%{opacity:.9;transform:scale(.5)}100%%{opacity:0;transform:scale(2.6)}}"
+        ".cgn{animation:cgn .55s cubic-bezier(.3,1.5,.5,1) both}@keyframes cgn{from{opacity:0;transform:scale(.55)}}"
+        ".cgd3{fill:none;stroke:var(--a3);stroke-width:%s;stroke-linecap:round}"
+        ".cgd2{fill:var(--a2)}.cgd1{fill:var(--edge)}.cgh{fill:var(--a1);fill-opacity:.35}"
+        ".cgo{fill:var(--bg);stroke:var(--a1);stroke-width:2.5}.cgc{fill:var(--a2)}"
+        % (n(Pz, 3), frames, n(Pw, 3), n(T, 3), n(sw * 5, 1), n(sw, 1), n(grow, 2), n(2.6 if mini else 2.8, 1), n(Pf * 2, 3),
+           n(Pf * 2, 3), n(4 if mini else 4.5, 1)))
+    return "".join(out)
+
+
 MOTIFS = {"cad": motif_cad, "stack": motif_stack, "ops": motif_ops, "catalog": motif_catalog, "eye": motif_eye, "face": motif_face, "terminal": motif_terminal,
           "circuit": motif_circuit, "chart": motif_chart, "dial": motif_dial, "slides": motif_slides,
           "linkage": motif_linkage, "wave": motif_wave, "crystal": motif_crystal, "radar": motif_radar,
-          "fight": motif_fight, "network": motif_network, "pcb": motif_pcb}
+          "fight": motif_fight, "network": motif_network, "pcb": motif_pcb,
+          "board": motif_board, "fractal": motif_fractal}
 
 
 def motif_data(spec: dict) -> dict:
@@ -1867,7 +2206,9 @@ def render(spec: dict, theme: str) -> str:
         desc += f" Drawn from {src['repo']} at commit {src['commit'][:12]}."
     markup = (f"<defs>{bg}{''.join(doc.defs)}{doc.glyph_defs()}</defs>{frame}"
               + f'<g class="mo">{motif_svg}</g>' + "".join(body))
-    css, markup, _ = _loop(css, markup, doc.ambient)
+    css, markup, T = _loop(css, markup, doc.ambient)
+    for name, near in doc.periods.items():               # a frame and the frame a cycle later are the same
+        css = re.sub(r"(animation:%s )[\d.]+s" % name, lambda m: m.group(1) + n(_period(T or near, near), 3) + "s", css)
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
             f'aria-label="{attr(label)}"><title>{escape(label)}</title>'
             + (f"<desc>{escape(desc)}</desc>" if desc else "")

@@ -48,9 +48,16 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <a href="https://graphlings.net"><img src="assets/cards/graphlings-dark.svg" width="32%" alt="Graphlings: crystal creatures that live, think and remember. Visit graphlings.net."></a>
 <a href="https://fight.graphlings.net/"><img src="assets/cards/club-fight-dark.svg" width="32%" alt="Club Fight: an animal fighting game. Play it at fight.graphlings.net."></a>
 <a href="https://fight.graphlings.net/"><img src="assets/thumbs/club-fight.jpg" width="32%" alt="Club Fight gameplay: a herd of zebras against hippos on a floating platform."></a>
-<img src="assets/cards/tritium-dark.svg" width="32%" alt="Tritium: every sensor fused into one operating picture, on your own hardware.">
+<img src="assets/cards/tritium-dark.svg" width="32%" alt="Tritium: robotic battlefield management.">
 <img src="assets/thumbs/tritium.jpg" width="32%" alt="Tritium's map: tracked targets over city blocks.">
 <a href="https://github.com/Valpatel/app-soundbox"><img src="assets/cards/app-soundbox-dark.svg" width="32%" alt="Sound Box: local AI music, sound effects and voice."></a>
+</p>
+
+### Graphs and agents
+
+<p>
+<a href="https://github.com/GraphDone/GraphDone-Core"><img src="assets/cards/graphdone-dark.svg" width="32%" alt="GraphDone: coordinate work through dependencies and outcomes, with AI agents as peers. Open source on GitHub."></a>
+<a href="https://graphlings.net"><img src="assets/cards/codegraph-dark.svg" width="32%" alt="CodeGraph: an agent tool from Graphlings that maps a codebase as a living 3D graph (private). Part of Graphlings, at graphlings.net."></a>
 </p>
 
 ### Robots, hardware and servers

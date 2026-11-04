@@ -134,6 +134,84 @@
    "desc": "The two-port board drawn from its KiCad layout: the outline is traced, pads and copper settle, the J47 header and both DE9 ports drop on, the CAN0 and CAN1 pairs are laid from the header to their ports, and pulses run along each pair, high and low in step."
   },
   {
+   "name": "graphdone",
+   "title": "GraphDone",
+   "name_size": 100,
+   "kind": "hero",
+   "palette": "graphdone",
+   "out": "GraphDone/GraphDone-Core:docs/img/hero/graphdone",
+   "tagline": "Management for teams who think differently. Coordinate through dependencies and outcomes.",
+   "facts": [
+    "humans + AI agents as peers",
+    "MCP server · GraphQL",
+    "MIT"
+   ],
+   "motif": {
+    "kind": "board",
+    "items": [
+     [
+      "TASK",
+      "Set up Neo4j database",
+      "Alice"
+     ],
+     [
+      "TASK",
+      "Configure GraphQL schema",
+      "agent"
+     ],
+     [
+      "MILESTONE",
+      "Graph visualization system",
+      "Alice"
+     ],
+     [
+      "TASK",
+      "Implement D3.js force layout",
+      "Bob"
+     ],
+     [
+      "TASK",
+      "Add node drag interaction",
+      "agent"
+     ],
+     [
+      "TASK",
+      "Implement authentication",
+      "Charlie"
+     ]
+    ],
+    "deps": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      5
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      2
+     ]
+    ],
+    "order": [
+     0,
+     3,
+     1,
+     4,
+     2,
+     5
+    ],
+    "outcome": "Production-ready graph system",
+    "source": "packages/server/src/scripts/seed.ts: project alpha's work items, their DEPENDS_ON and IS_PART_OF edges, its outcome and its contributors (people and an AI agent)"
+   },
+   "desc": "A list of work items from GraphDone's own seed graph, owned by people and an AI agent, with their dependencies drawn as arcs down the left and every item wired to the outcome, drawn as GraphDone's logo. The items complete in dependency order: each row's progress fills and a tick lands, its arcs and its wire light up and one of the logo's work nodes comes on; when every item is done the outcome is reached and work flows into it."
+  },
+  {
    "name": "profile-mvalancy",
    "title": "Matthew Valancy",
    "kind": "hero",
@@ -336,6 +414,100 @@
    "cta": "Visit"
   },
   {
+   "name": "card-codegraph",
+   "title": "CodeGraph",
+   "kind": "card",
+   "palette": "codegraph",
+   "out": [
+    "assets/cards/codegraph",
+    "Valpatel/.github:assets/cards/codegraph"
+   ],
+   "tagline": "An agent tool from Graphlings that maps a codebase as a living 3D graph.",
+   "facts": [],
+   "motif": {
+    "kind": "fractal",
+    "seed": "codegraph"
+   },
+   "private": true
+  },
+  {
+   "name": "card-graphdone",
+   "title": "GraphDone",
+   "kind": "card",
+   "palette": "graphdone",
+   "out": [
+    "assets/cards/graphdone",
+    "Valpatel/.github:assets/cards/graphdone"
+   ],
+   "tagline": "Coordinate work through dependencies and outcomes, with AI agents as peers.",
+   "facts": [
+    "MIT"
+   ],
+   "motif": {
+    "kind": "board",
+    "items": [
+     [
+      "TASK",
+      "Set up Neo4j database",
+      "Alice"
+     ],
+     [
+      "TASK",
+      "Configure GraphQL schema",
+      "agent"
+     ],
+     [
+      "MILESTONE",
+      "Graph visualization system",
+      "Alice"
+     ],
+     [
+      "TASK",
+      "Implement D3.js force layout",
+      "Bob"
+     ],
+     [
+      "TASK",
+      "Add node drag interaction",
+      "agent"
+     ],
+     [
+      "TASK",
+      "Implement authentication",
+      "Charlie"
+     ]
+    ],
+    "deps": [
+     [
+      0,
+      1
+     ],
+     [
+      1,
+      5
+     ],
+     [
+      3,
+      2
+     ],
+     [
+      4,
+      2
+     ]
+    ],
+    "order": [
+     0,
+     3,
+     1,
+     4,
+     2,
+     5
+    ],
+    "outcome": "Production-ready graph system",
+    "source": "packages/server/src/scripts/seed.ts: project alpha's work items, their DEPENDS_ON and IS_PART_OF edges, its outcome and its contributors (people and an AI agent)"
+   }
+  },
+  {
    "name": "card-tritium",
    "title": "Tritium",
    "kind": "card",
@@ -344,7 +516,7 @@
     "assets/cards/tritium",
     "Valpatel/.github:assets/cards/tritium"
    ],
-   "tagline": "Every sensor fused into one operating picture.",
+   "tagline": "Robotic battlefield management.",
    "facts": [],
    "motif": {
     "kind": "radar",
