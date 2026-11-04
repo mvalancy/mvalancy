@@ -1294,33 +1294,33 @@ def _sketch_title(doc, title, x0, base, s, adv, mini):
                     f'<path d="M0 0V{cell * 5}M0 0H{cell * 5}" stroke="var(--a2)" stroke-width="1"/></pattern>')
     out = [f'<rect class="gp" x="{n(gx0)}" y="{n(gy0)}" width="{n(gx1 - gx0)}" height="{n(gy1 - gy0)}" fill="url(#gp)"/>']
     # construction: guide lines and a box per letter, in font units, with strokes kept at screen width
-    # the guides, the letter boxes and the letters each animate as one group: a loop keeps its animations running
-    # through the hold, and stroke, dash and fill changes cost the browser work on every frame for every element that
-    # carries one, so one group each (the letters inherit) keeps the loop as light as the intro alone
-    gls = "".join(f'<path d="M{-int(upm * 0.12)} {yv}H{int(adv + upm * 0.12)}"/>' for yv in (0, xh, cap, desc))
-    con = [f'<g class="gls">{gls}</g>']
-    x, boxes = 0, []
+    con = []
+    for k, yv in enumerate((0, xh, cap, desc)):
+        con.append(f'<path class="gl" d="M{-int(upm * 0.12)} {yv}H{int(adv + upm * 0.12)}" '
+                   f'style="animation-delay:{n(t0 + 0.06 * k, 2)}s"/>')
+    x = 0
     for i, c in enumerate(title):
         a = g.get(c, g[" "])[0]
         if c != " ":
-            boxes.append(f'<rect x="{x}" y="{desc}" width="{a}" height="{cap - desc}" pathLength="1"/>')
+            con.append(f'<rect class="gb" x="{x}" y="{desc}" width="{a}" height="{cap - desc}" pathLength="1" '
+                       f'style="animation-delay:{n(t0 + 0.15 + stagger * i, 2)}s"/>')
         x += a
-    con.append(f'<g class="gb">{"".join(boxes)}</g>')
     out.append(f'<g class="con" transform="{tr}">{"".join(con)}</g>')
-    letters = doc.uses(title, "bold")
+    letters = doc.uses(title, "bold", lambda i: _delay(t0 + 0.3 + stagger * i))
     w_thin, w_bold, w_end = 0.9 / s, (2.6 if mini else 3.4) / s, 1.2 / s
     out.append(f'<g class="nm" transform="{tr}" fill="url(#ng)" stroke="url(#ng)" stroke-width="{n(w_end, 1)}">{letters}</g>')
     total = t_end + 0.4
-    css = (f".nm{{stroke-dasharray:1;stroke-dashoffset:0;animation:ink {n(dur, 2)}s {n(t0 + 0.3, 2)}s cubic-bezier(.45,0,.2,1) both}}"
+    css = (f".nm use{{stroke-dasharray:1;stroke-dashoffset:0;animation:ink {n(dur, 2)}s cubic-bezier(.45,0,.2,1) both}}"
            f"@keyframes ink{{0%{{stroke-dashoffset:1;stroke-width:{n(w_thin, 1)}px;fill-opacity:0}}"
            f"42%{{stroke-dashoffset:0;stroke-width:{n(w_thin, 1)}px;fill-opacity:0}}"
            f"66%{{stroke-width:{n(w_bold, 1)}px;fill-opacity:.15}}100%{{stroke-width:{n(w_end, 1)}px;fill-opacity:1}}}}"
            f".gp{{opacity:0;animation:gp {n(total, 2)}s linear both}}"
            f"@keyframes gp{{0%{{opacity:0}}8%{{opacity:1}}70%{{opacity:1}}100%{{opacity:0}}}}"
            f".con path,.con rect{{fill:none;vector-effect:non-scaling-stroke}}"
-           f".gls{{stroke:var(--a2);stroke-width:1;stroke-dasharray:6 4;opacity:0;animation:gl {n(total - t0, 2)}s {n(t0, 2)}s ease-out both}}"
-           f"@keyframes gl{{0%{{opacity:0}}12%{{opacity:.9}}70%{{opacity:.8}}100%{{opacity:0}}}}"
-           f".gb{{stroke:var(--muted);stroke-width:1;stroke-dasharray:1;opacity:0;animation:gb {n(dur + 0.4, 2)}s {n(t0 + 0.15, 2)}s ease-out both}}"
+           f".gl{{stroke:var(--a2);stroke-width:1;stroke-dasharray:6 4;opacity:0;transform-box:fill-box;transform-origin:0 0;"
+           f"animation:gl {n(total - t0, 2)}s ease-out both}}"
+           f"@keyframes gl{{0%{{opacity:.9;transform:scaleX(0)}}18%{{transform:scaleX(1)}}70%{{opacity:.8}}100%{{opacity:0}}}}"
+           f".gb{{stroke:var(--muted);stroke-width:1;stroke-dasharray:1;opacity:0;animation:gb {n(dur + 0.4, 2)}s ease-out both}}"
            f"@keyframes gb{{0%{{opacity:.85;stroke-dashoffset:1}}30%{{opacity:.85;stroke-dashoffset:0}}"
            f"65%{{opacity:.55;stroke-dashoffset:0}}100%{{opacity:0;stroke-dashoffset:0}}}}")
     return "".join(out), css, t_end - 0.5
@@ -1352,7 +1352,7 @@ def _cta(doc, spec, x, y, fs, ph, cap):
             if spec.get("cta_icon") == "play" else
             f'<path d="M{n(x + 13 * k)} {n(y + ph / 2)}h{n(14 * k)}m-{n(5 * k)}-{n(5 * k)} {n(5 * k)} {n(5 * k)}-{n(5 * k)} {n(5 * k)}" '
             f'fill="none" stroke="var(--bg)" stroke-width="{n(2.4 * k)}" stroke-linecap="round" stroke-linejoin="round"/>')
-    doc.css.append(".cta{animation:cta 2.4s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
+    doc.css.append(".cta{animation:cta 2.4s 1s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
     return (f'<g class="cta"><rect x="{n(x)}" y="{n(y)}" width="{n(pw)}" height="{n(ph)}" rx="{n(ph / 2)}" fill="var(--a1)"/>'
             f'{icon}{doc.text(cta, "medium", fs, x + 37 * k, y + ph / 2 + fs * cap / 2, fill="var(--bg)")}</g>'), pw
 
@@ -1473,6 +1473,10 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
 
 # ------------------------------------------------------------------------------------------------ the loop
 
+# endless animations that start once their part is drawn (network packets, stack packets, CAN pulses, wifi arcs,
+# talk bars): the loop gates them so they show only while their part does. Every other delay on an endless
+# animation is a phase offset on a part that shows from the start (eyes, nodes, bars), left running as it is.
+WAITS = {"pulse", "pk", "pls", "wave", "talk"}
 HOLD = 4.0          # seconds the finished frame stays up after the last element lands, before the banner restarts
 REST = 3.0          # seconds an ambient animation (a scan) rests at its still frame before the restart
 RESET = 0.6         # seconds the animated elements take to fade out at the end of a cycle
@@ -1567,8 +1571,8 @@ def _matches(compounds, path) -> bool:
 def _scan(rules, markup: str) -> tuple:
     """Walk ``markup`` with the stylesheet's ``rules``. Returns (found, gates): ``found`` lists the elements with an
     animation that plays once, as (match, attributes, style declarations, animations, computed style); ``gates``
-    lists the elements whose endless animation waits for a delay (a pulse that starts once its board is drawn) with
-    nothing that loops around or inside them, as [start, end, delay] in ``markup``. An element counts as looping when
+    lists the elements whose endless animation in ``WAITS`` waits for a delay (a pulse that starts once its board is
+    drawn) with nothing that loops around or inside them, as [start, end, delay] in ``markup``. An element counts as looping when
     it plays an animation once, or repeats one whose keyframes the loop wrote (``L<n>``)."""
     tag_re = re.compile(r'<(/?)([A-Za-z][\w:-]*)((?:\s+[\w:-]+="[^"]*")*)\s*(/?)>')
     path, stack, found, gates = [], [], [], []
@@ -1605,7 +1609,7 @@ def _scan(rules, markup: str) -> tuple:
         looped = once or any(re.fullmatch(r"L\d+", a["name"] or "") for a in anims)
         if once:
             found.append((m, attrs, style, anims, dict(computed)))
-        waits = [a["delay"] for a in anims if a["count"] is None and a["delay"] > 0]
+        waits = [a["delay"] for a in anims if a["count"] is None and a["delay"] > 0 and a["name"] in WAITS]
         inside = any(e["looped"] or e["gate"] is not None for e in stack)
         entry = {"looped": looped, "inner": False,
                  "gate": [m.start(), None, min(waits)] if waits and not looped and not inside else None}
@@ -1617,8 +1621,8 @@ def _scan(rules, markup: str) -> tuple:
 
 
 def drifting(text: str) -> list:
-    """The elements of a rendered banner whose endless animation waits for a delay but is not inside anything that
-    loops: from the second cycle on it would run out of step, on a banner that is fading or being rebuilt."""
+    """The elements of a rendered banner whose endless animation in ``WAITS`` waits for a delay but is not inside
+    anything that loops: from the second cycle on it would run out of step, on a banner that is fading or being rebuilt."""
     css = re.search(r"<style>(.*?)</style>", text, re.S).group(1)
     markup = re.sub(r"\s*</svg>\s*$", "", text[text.index("</style>") + 8:])   # the root's end tag
     rules = []

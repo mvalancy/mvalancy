@@ -224,16 +224,21 @@ class Sample(unittest.TestCase):
 class Rules(unittest.TestCase):
     """Each rule catches an SVG that breaks it, so a rule that stops checking is caught too."""
 
-    def test_every_timed_animation_repeats_and_reduced_motion_shows_the_finished_frame(self):
-        """Every banner loops: no animation plays once and stops, the intros share one cycle (so they restart in
-        step), and the reduced-motion rule that stops them all is there. Checked on every motif, every size and every
-        committed banner spec."""
+    @staticmethod
+    def specs():
+        """Every motif at every size, and every committed banner spec."""
         specs = [dict(heroes.SAMPLE, kind=k, motif=m) for k in ("hero", "spot", "card") for m in (
             {"kind": "network"}, {"kind": "chart", "style": "bars"}, {"kind": "chart", "style": "solar"},
             {"kind": "slides"}, {"kind": "terminal", "lines": [10, 30, 20]}, {"kind": "dial"}, {"kind": "circuit"},
             {"kind": "stack"}, {"kind": "eye", "pan": 1, "zoom": [100, 500]})]
-        specs += [b for b in heroes.banners() if not (isinstance(b["out"], str) and b["out"].startswith("Valpatel/.github"))]
-        for spec in specs:
+        return specs + [b for b in heroes.banners()
+                        if not (isinstance(b["out"], str) and b["out"].startswith("Valpatel/.github"))]
+
+    def test_every_timed_animation_repeats_and_reduced_motion_shows_the_finished_frame(self):
+        """Every banner loops: no animation plays once and stops, the intros share one cycle (so they restart in
+        step), and the reduced-motion rule that stops them all is there. Checked on every motif, every size and every
+        committed banner spec."""
+        for spec in self.specs():
             for theme in spec.get("themes", ["dark"]):
                 with self.subTest(banner=spec["name"], kind=spec.get("kind"), motif=(spec.get("motif") or {}).get("kind")):
                     text = heroes.render(spec, theme)
@@ -251,15 +256,34 @@ class Rules(unittest.TestCase):
         """A pulse that starts once its part is drawn is gated: hidden until its delay, faded out with the rest, so it
         never runs on a banner that is fading or being rebuilt. One already inside a looping part is left alone."""
         css = (".in{animation:fade 1s both}@keyframes fade{from{opacity:0}}"
-               ".p{animation:p 2s 3s linear infinite}@keyframes p{to{opacity:.2}}")
-        out_css, markup, T = heroes._loop(css, '<g class="in"><path class="p"/></g><path class="p"/><g/>')
+               ".p{animation:pulse 2s 3s linear infinite}@keyframes pulse{to{opacity:.2}}"
+               ".e{animation:blink 5s 1s infinite}@keyframes blink{50%{opacity:.4}}")
+        out_css, markup, T = heroes._loop(css, '<g class="in"><path class="p"/></g><path class="p"/><g/><g class="e"/>')
         self.assertEqual(T, round(3 + heroes.GATE + heroes.HOLD + heroes.RESET, 1))   # the pulse gets the full hold
         self.assertEqual(markup.count("<g style="), 1)                       # only the free pulse is wrapped
         self.assertRegex(markup, r'^<g class="in" style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g>'
-                                 r'<g style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g><g/>$')
+                                 r'<g style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g><g/><g class="e"/>$')
         pct = lambda t: heroes.n(100 * t / T, 2) + "%"
         self.assertIn(f"{pct(3)}{{opacity:0;animation-timing-function:ease-out}}", out_css)
         self.assertEqual(heroes.drifting(f"<style>{css}</style><path class=\"p\"/>"), ['<path class="p"/>'])
+
+    def test_a_phase_offset_is_not_gated(self):
+        """Only the animations in WAITS start once their part is drawn. Any other delay on an endless animation is a
+        phase offset on a part that shows from the first frame (the eye looks around, the face blinks, the nodes
+        glow), so the loop never hides it: in every banner each gate wraps an animation from WAITS, and the eyes,
+        nodes, bars and blips stay unwrapped."""
+        phased = {"look", "fblink", "blink", "zoom", "glow", "play", "hp", "blip", "cta"}
+        for spec in self.specs():
+            text = heroes.render(spec, "dark")
+            with self.subTest(banner=spec["name"], kind=spec.get("kind"), motif=(spec.get("motif") or {}).get("kind")):
+                for inner in re.findall(r'<g style="animation:L\d+ [^"]*">(<[^>]*>)', text):
+                    cls = re.search(r'class="([^"]*)"', inner)
+                    names = set(re.findall(r'animation:(\w+)', inner))
+                    if cls:
+                        for c in cls.group(1).split():
+                            names |= set(re.findall(r'\.' + re.escape(c) + r'\{[^}]*?animation:(\w+)', text))
+                    self.assertTrue(names & heroes.WAITS, inner)
+                    self.assertFalse(names & phased, inner)
 
     def test_a_looped_intro_holds_its_finished_frame_then_fades(self):
         """The loop keeps an intro's easing and timing, holds its end state and fades out before the restart."""
