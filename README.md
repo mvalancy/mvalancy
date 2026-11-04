@@ -56,8 +56,8 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 ### Graphs and agents
 
 <p>
-<a href="https://github.com/GraphDone/GraphDone-Core"><img src="assets/cards/graphdone-dark.svg" width="32%" alt="GraphDone: coordinate work through dependencies and outcomes, with AI agents as peers. Open source on GitHub."></a>
-<a href="https://graphlings.net"><img src="assets/cards/codegraph-dark.svg" width="32%" alt="CodeGraph: an agent tool from Graphlings that maps a codebase as a living 3D graph (private). Part of Graphlings, at graphlings.net."></a>
+<a href="https://github.com/GraphDone/GraphDone-Core"><img src="assets/cards/graphdone-dark.svg" width="32%" alt="GraphDone: relationship management for agents, people and AI agents linked by dependencies and outcomes. Open source on GitHub."></a>
+<img src="assets/cards/codegraph-dark.svg" width="32%" alt="CodeGraph: agent-enabled deep visual code analysis, a private tool from Graphlings.">
 </p>
 
 ### Robots, hardware and servers

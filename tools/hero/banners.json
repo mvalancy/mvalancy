@@ -140,7 +140,7 @@
    "kind": "hero",
    "palette": "graphdone",
    "out": "GraphDone/GraphDone-Core:docs/img/hero/graphdone",
-   "tagline": "Management for teams who think differently. Coordinate through dependencies and outcomes.",
+   "tagline": "Relationship management for agents. People and AI agents coordinate through dependencies and outcomes.",
    "facts": [
     "humans + AI agents as peers",
     "MCP server · GraphQL",
@@ -422,7 +422,7 @@
     "assets/cards/codegraph",
     "Valpatel/.github:assets/cards/codegraph"
    ],
-   "tagline": "An agent tool from Graphlings that maps a codebase as a living 3D graph.",
+   "tagline": "Agent-enabled deep visual code analysis.",
    "facts": [],
    "motif": {
     "kind": "fractal",
@@ -439,7 +439,7 @@
     "assets/cards/graphdone",
     "Valpatel/.github:assets/cards/graphdone"
    ],
-   "tagline": "Coordinate work through dependencies and outcomes, with AI agents as peers.",
+   "tagline": "Relationship management for agents: people and AI agents linked by dependencies and outcomes.",
    "facts": [
     "MIT"
    ],
