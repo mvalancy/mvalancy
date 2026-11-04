@@ -245,6 +245,21 @@ class Rules(unittest.TestCase):
                     self.assertGreaterEqual(T, heroes.HOLD + heroes.RESET)
                     for lag in re.findall(r'animation:L\d+ [\d.]+s ([\d.]+)s backwards', text):
                         self.assertLessEqual(float(lag), heroes.SPREAD)     # a stagger, never a second start
+                    self.assertEqual(heroes.drifting(text), [])               # no endless pulse outlives its part
+
+    def test_a_delayed_endless_animation_restarts_with_the_cycle(self):
+        """A pulse that starts once its part is drawn is gated: hidden until its delay, faded out with the rest, so it
+        never runs on a banner that is fading or being rebuilt. One already inside a looping part is left alone."""
+        css = (".in{animation:fade 1s both}@keyframes fade{from{opacity:0}}"
+               ".p{animation:p 2s 3s linear infinite}@keyframes p{to{opacity:.2}}")
+        out_css, markup, T = heroes._loop(css, '<g class="in"><path class="p"/></g><path class="p"/><g/>')
+        self.assertEqual(T, round(3 + heroes.GATE + heroes.HOLD + heroes.RESET, 1))   # the pulse gets the full hold
+        self.assertEqual(markup.count("<g style="), 1)                       # only the free pulse is wrapped
+        self.assertRegex(markup, r'^<g class="in" style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g>'
+                                 r'<g style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g><g/>$')
+        pct = lambda t: heroes.n(100 * t / T, 2) + "%"
+        self.assertIn(f"{pct(3)}{{opacity:0;animation-timing-function:ease-out}}", out_css)
+        self.assertEqual(heroes.drifting(f"<style>{css}</style><path class=\"p\"/>"), ['<path class="p"/>'])
 
     def test_a_looped_intro_holds_its_finished_frame_then_fades(self):
         """The loop keeps an intro's easing and timing, holds its end state and fades out before the restart."""
@@ -266,6 +281,9 @@ class Rules(unittest.TestCase):
         with self.assertRaises(ValueError):          # a one-shot and an endless animation on one property
             heroes._loop(".x{animation:g 1s both,h 2s infinite}@keyframes g{from{opacity:0}}@keyframes h{to{opacity:.5}}",
                          '<g class="x"/>')
+        with self.assertRaises(ValueError):          # ... the opacity the loop fades counts too
+            heroes._loop(".x{animation:g 1s both,h 2s infinite}@keyframes g{from{transform:scale(0)}}"
+                         "@keyframes h{to{opacity:.5}}", '<g class="x"/>')
 
     def setUp(self):
         self.good = sample("card")
@@ -293,6 +311,8 @@ class Rules(unittest.TestCase):
 
     def test_an_animation_that_plays_once(self):
         self.assertEqual(heroes.timed(self.good), [])
+        self.assertEqual(heroes.timed('<g style="animation:none"/>'), [])
+        self.assertEqual(heroes.timed(".a{animation:a 2s infinite;animation-iteration-count:3}"), ["iteration count 3"])
         once = re.sub(r"(animation:L\d+ [\d.]+s) infinite", r"\1 1 both", self.good, count=1)
         self.assertEqual(len(heroes.timed(once)), 1)
         self.assertTrue(heroes.problems(once, "card"))

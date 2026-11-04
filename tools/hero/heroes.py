@@ -1052,8 +1052,7 @@ def motif_ops(doc, data, box, mini, t0):
             out.append(f'<g class="lg" style="animation-delay:{n(t0 + 0.6 + 0.9 * i, 2)}s">'
                        + doc.text("> " + line, "medium", lsz, x + 14, yy, fill="var(--a2)" if i == len(log) - 1 else "var(--muted)", track=40)
                        + "</g>")
-        doc.css.append(".lg{animation:lg 9s ease-out infinite both}"
-                       "@keyframes lg{0%{opacity:0;transform:translateX(-8px)}6%,88%{opacity:1;transform:none}100%{opacity:1}}")
+        doc.css.append(".lg{animation:lg .55s ease-out both}@keyframes lg{from{opacity:0;transform:translateX(-8px)}}")
     return "".join(out)
 
 
@@ -1295,33 +1294,33 @@ def _sketch_title(doc, title, x0, base, s, adv, mini):
                     f'<path d="M0 0V{cell * 5}M0 0H{cell * 5}" stroke="var(--a2)" stroke-width="1"/></pattern>')
     out = [f'<rect class="gp" x="{n(gx0)}" y="{n(gy0)}" width="{n(gx1 - gx0)}" height="{n(gy1 - gy0)}" fill="url(#gp)"/>']
     # construction: guide lines and a box per letter, in font units, with strokes kept at screen width
-    con = []
-    for k, yv in enumerate((0, xh, cap, desc)):
-        con.append(f'<path class="gl" d="M{-int(upm * 0.12)} {yv}H{int(adv + upm * 0.12)}" '
-                   f'style="animation-delay:{n(t0 + 0.06 * k, 2)}s"/>')
-    x = 0
+    # the guides, the letter boxes and the letters each animate as one group: a loop keeps its animations running
+    # through the hold, and stroke, dash and fill changes cost the browser work on every frame for every element that
+    # carries one, so one group each (the letters inherit) keeps the loop as light as the intro alone
+    gls = "".join(f'<path d="M{-int(upm * 0.12)} {yv}H{int(adv + upm * 0.12)}"/>' for yv in (0, xh, cap, desc))
+    con = [f'<g class="gls">{gls}</g>']
+    x, boxes = 0, []
     for i, c in enumerate(title):
         a = g.get(c, g[" "])[0]
         if c != " ":
-            con.append(f'<rect class="gb" x="{x}" y="{desc}" width="{a}" height="{cap - desc}" pathLength="1" '
-                       f'style="animation-delay:{n(t0 + 0.15 + stagger * i, 2)}s"/>')
+            boxes.append(f'<rect x="{x}" y="{desc}" width="{a}" height="{cap - desc}" pathLength="1"/>')
         x += a
+    con.append(f'<g class="gb">{"".join(boxes)}</g>')
     out.append(f'<g class="con" transform="{tr}">{"".join(con)}</g>')
-    letters = doc.uses(title, "bold", lambda i: _delay(t0 + 0.3 + stagger * i))
+    letters = doc.uses(title, "bold")
     w_thin, w_bold, w_end = 0.9 / s, (2.6 if mini else 3.4) / s, 1.2 / s
     out.append(f'<g class="nm" transform="{tr}" fill="url(#ng)" stroke="url(#ng)" stroke-width="{n(w_end, 1)}">{letters}</g>')
     total = t_end + 0.4
-    css = (f".nm use{{stroke-dasharray:1;stroke-dashoffset:0;animation:ink {n(dur, 2)}s cubic-bezier(.45,0,.2,1) both}}"
+    css = (f".nm{{stroke-dasharray:1;stroke-dashoffset:0;animation:ink {n(dur, 2)}s {n(t0 + 0.3, 2)}s cubic-bezier(.45,0,.2,1) both}}"
            f"@keyframes ink{{0%{{stroke-dashoffset:1;stroke-width:{n(w_thin, 1)}px;fill-opacity:0}}"
            f"42%{{stroke-dashoffset:0;stroke-width:{n(w_thin, 1)}px;fill-opacity:0}}"
            f"66%{{stroke-width:{n(w_bold, 1)}px;fill-opacity:.15}}100%{{stroke-width:{n(w_end, 1)}px;fill-opacity:1}}}}"
            f".gp{{opacity:0;animation:gp {n(total, 2)}s linear both}}"
            f"@keyframes gp{{0%{{opacity:0}}8%{{opacity:1}}70%{{opacity:1}}100%{{opacity:0}}}}"
            f".con path,.con rect{{fill:none;vector-effect:non-scaling-stroke}}"
-           f".gl{{stroke:var(--a2);stroke-width:1;stroke-dasharray:6 4;opacity:0;transform-box:fill-box;transform-origin:0 0;"
-           f"animation:gl {n(total - t0, 2)}s ease-out both}}"
-           f"@keyframes gl{{0%{{opacity:.9;transform:scaleX(0)}}18%{{transform:scaleX(1)}}70%{{opacity:.8}}100%{{opacity:0}}}}"
-           f".gb{{stroke:var(--muted);stroke-width:1;stroke-dasharray:1;opacity:0;animation:gb {n(dur + 0.4, 2)}s ease-out both}}"
+           f".gls{{stroke:var(--a2);stroke-width:1;stroke-dasharray:6 4;opacity:0;animation:gl {n(total - t0, 2)}s {n(t0, 2)}s ease-out both}}"
+           f"@keyframes gl{{0%{{opacity:0}}12%{{opacity:.9}}70%{{opacity:.8}}100%{{opacity:0}}}}"
+           f".gb{{stroke:var(--muted);stroke-width:1;stroke-dasharray:1;opacity:0;animation:gb {n(dur + 0.4, 2)}s {n(t0 + 0.15, 2)}s ease-out both}}"
            f"@keyframes gb{{0%{{opacity:.85;stroke-dashoffset:1}}30%{{opacity:.85;stroke-dashoffset:0}}"
            f"65%{{opacity:.55;stroke-dashoffset:0}}100%{{opacity:0;stroke-dashoffset:0}}}}")
     return "".join(out), css, t_end - 0.5
@@ -1353,7 +1352,7 @@ def _cta(doc, spec, x, y, fs, ph, cap):
             if spec.get("cta_icon") == "play" else
             f'<path d="M{n(x + 13 * k)} {n(y + ph / 2)}h{n(14 * k)}m-{n(5 * k)}-{n(5 * k)} {n(5 * k)} {n(5 * k)}-{n(5 * k)} {n(5 * k)}" '
             f'fill="none" stroke="var(--bg)" stroke-width="{n(2.4 * k)}" stroke-linecap="round" stroke-linejoin="round"/>')
-    doc.css.append(".cta{animation:cta 2.4s 1s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
+    doc.css.append(".cta{animation:cta 2.4s ease-in-out infinite}@keyframes cta{50%{opacity:.78}}")
     return (f'<g class="cta"><rect x="{n(x)}" y="{n(y)}" width="{n(pw)}" height="{n(ph)}" rx="{n(ph / 2)}" fill="var(--a1)"/>'
             f'{icon}{doc.text(cta, "medium", fs, x + 37 * k, y + ph / 2 + fs * cap / 2, fill="var(--bg)")}</g>'), pw
 
@@ -1475,9 +1474,10 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
 # ------------------------------------------------------------------------------------------------ the loop
 
 HOLD = 4.0          # seconds the finished frame stays up after the last element lands, before the banner restarts
-REST = 1.0          # seconds an ambient animation (a scan) rests at its still frame before the restart
+REST = 3.0          # seconds an ambient animation (a scan) rests at its still frame before the restart
 RESET = 0.6         # seconds the animated elements take to fade out at the end of a cycle
-SPREAD = 0.25        # elements of one animation whose delays lie within this many seconds share one set of keyframes
+SPREAD = 0.25       # elements of one animation whose delays lie within this many seconds share one set of keyframes
+GATE = 0.3          # seconds a delayed endless animation (a pulse, a wave) takes to fade in when it starts
 _INITIAL = {"opacity": "1", "fill-opacity": "1", "stroke-dashoffset": "0", "transform": "none", "clip-path": "none"}
 _TIMING = re.compile(r"(ease(-in|-out|-in-out)?|linear|step-start|step-end|(cubic-bezier|steps)\([^)]*\))$")
 
@@ -1564,6 +1564,74 @@ def _matches(compounds, path) -> bool:
     return i < 0
 
 
+def _scan(rules, markup: str) -> tuple:
+    """Walk ``markup`` with the stylesheet's ``rules``. Returns (found, gates): ``found`` lists the elements with an
+    animation that plays once, as (match, attributes, style declarations, animations, computed style); ``gates``
+    lists the elements whose endless animation waits for a delay (a pulse that starts once its board is drawn) with
+    nothing that loops around or inside them, as [start, end, delay] in ``markup``. An element counts as looping when
+    it plays an animation once, or repeats one whose keyframes the loop wrote (``L<n>``)."""
+    tag_re = re.compile(r'<(/?)([A-Za-z][\w:-]*)((?:\s+[\w:-]+="[^"]*")*)\s*(/?)>')
+    path, stack, found, gates = [], [], [], []
+
+    def close(entry, end):
+        if entry["gate"] is not None and not entry["inner"]:
+            entry["gate"][1] = end
+            gates.append(entry["gate"])
+        if (entry["looped"] or entry["inner"]) and stack:
+            stack[-1]["inner"] = True
+
+    for m in tag_re.finditer(markup):
+        if m.group(1):
+            path.pop()
+            close(stack.pop(), m.end())
+            continue
+        attrs = dict(re.findall(r'([\w:-]+)="([^"]*)"', m.group(3)))
+        path.append((m.group(2), set(attrs.get("class", "").split())))
+        style = _decls(attrs.get("style", ""))
+        hits = sorted((r for r in rules if _matches(r[2], path)), key=lambda r: (r[0], r[1]))
+        computed = {}
+        for prop, val in [d for r in hits for d in r[3]] + style:
+            computed[prop] = val
+            if prop == "animation":
+                computed.pop("animation-delay", None)
+        anims = []
+        if "animation" in computed:
+            anims = [_anim(x) for x in _split(computed["animation"])]
+            if "animation-delay" in computed:
+                delays = [_secs(t) for t in _split(computed["animation-delay"])]
+                for i, a in enumerate(anims):
+                    a["delay"] = delays[i % len(delays)]
+        once = any(a["count"] is not None for a in anims)
+        looped = once or any(re.fullmatch(r"L\d+", a["name"] or "") for a in anims)
+        if once:
+            found.append((m, attrs, style, anims, dict(computed)))
+        waits = [a["delay"] for a in anims if a["count"] is None and a["delay"] > 0]
+        inside = any(e["looped"] or e["gate"] is not None for e in stack)
+        entry = {"looped": looped, "inner": False,
+                 "gate": [m.start(), None, min(waits)] if waits and not looped and not inside else None}
+        stack.append(entry)
+        if m.group(4):
+            path.pop()
+            close(stack.pop(), m.end())
+    return found, gates
+
+
+def drifting(text: str) -> list:
+    """The elements of a rendered banner whose endless animation waits for a delay but is not inside anything that
+    loops: from the second cycle on it would run out of step, on a banner that is fading or being rebuilt."""
+    css = re.search(r"<style>(.*?)</style>", text, re.S).group(1)
+    markup = re.sub(r"\s*</svg>\s*$", "", text[text.index("</style>") + 8:])   # the root's end tag
+    rules = []
+    for order, (pre, body) in enumerate(_blocks(css)):
+        if not pre.startswith("@"):
+            for sel in _split(pre):
+                if not re.search(r"[^\w\s.*-]", sel):           # the theme's attribute selectors set colours only
+                    comp = _selector(sel)
+                    rules.append(((sum(len(c[1]) for c in comp), sum(c[0] is not None for c in comp)), order, comp,
+                                  _decls(body)))
+    return [markup[g[0]:g[0] + 80] for g in _scan(rules, markup)[1]]
+
+
 def _loop(css: str, markup: str, ambient=()) -> tuple:
     """Make a banner loop. Every element whose animation plays once (an intro: it fades, slides, draws or traces in)
     is given keyframes that span one cycle of ``T`` seconds, repeated forever: the intro at its own time, the finished
@@ -1590,32 +1658,8 @@ def _loop(css: str, markup: str, ambient=()) -> tuple:
                 comp = _selector(sel)
                 spec = (sum(len(c[1]) for c in comp), sum(c[0] is not None for c in comp))
                 rules.append((spec, order, comp, _decls(body)))
-    tag_re = re.compile(r'<(/?)([A-Za-z][\w:-]*)((?:\s+[\w:-]+="[^"]*")*)\s*(/?)>')
-    path, found = [], []                        # found: (match, attrs, style decls, animations, base lookup)
-    for m in tag_re.finditer(markup):
-        if m.group(1):
-            path.pop()
-            continue
-        attrs = dict(re.findall(r'([\w:-]+)="([^"]*)"', m.group(3)))
-        path.append((m.group(2), set(attrs.get("class", "").split())))
-        style = _decls(attrs.get("style", ""))
-        hits = sorted((r for r in rules if _matches(r[2], path)), key=lambda r: (r[0], r[1]))
-        computed = {}
-        for prop, val in [d for r in hits for d in r[3]] + style:
-            computed[prop] = val
-            if prop == "animation":
-                computed.pop("animation-delay", None)
-        if "animation" in computed:
-            anims = [_anim(x) for x in _split(computed["animation"])]
-            if "animation-delay" in computed:
-                delays = [_secs(t) for t in _split(computed["animation-delay"])]
-                for i, a in enumerate(anims):
-                    a["delay"] = delays[i % len(delays)]
-            if any(a["count"] is not None for a in anims):
-                found.append((m, attrs, style, anims, dict(computed)))
-        if m.group(4):
-            path.pop()
-    if not found:
+    found, gates = _scan(rules, markup)
+    if not found and not gates:
         return css, markup, 0.0
 
     def base(prop, computed, attrs):
@@ -1634,10 +1678,10 @@ def _loop(css: str, markup: str, ambient=()) -> tuple:
             raise ValueError(f"no @keyframes {a['name']}")
         for b in found[i][3]:
             if b["count"] is None and b["name"] in frames:
-                mine = {p for _, d in frames[a["name"]] for p in d}
+                mine = {p for _, d in frames[a["name"]] for p in d} | {"opacity"}    # the loop fades it too
                 if mine & {p for _, d in frames[b["name"]] for p in d}:
                     raise ValueError(f"{a['name']} and the endless {b['name']} animate one property on one element")
-    built = [a["delay"] + a["dur"] for _, a in once if a["name"] not in ambient]
+    built = [a["delay"] + a["dur"] for _, a in once if a["name"] not in ambient] + [g[2] + GATE for g in gates]
     rested = [a["delay"] + a["dur"] for _, a in once if a["name"] in ambient]
     T = round(max([max(built, default=0) + HOLD] + [t + REST for t in rested]) + RESET, 1)
     # group: one set of keyframes per animation, element style and cluster of delays
@@ -1683,11 +1727,35 @@ def _loop(css: str, markup: str, ambient=()) -> tuple:
             for d, i, a in cl:
                 lag = f" {n(d - d0, 2)}s backwards" if d - d0 > 0 else ""
                 inline[(i, id(a))] = f"{names[kf]} {n(T, 2)}s{lag} infinite"
+    # a gate: hidden until its endless animation starts, shown, faded out with the rest, so it restarts in step
+    gate_open = {}
+    gates.sort(key=lambda g: g[2])
+    clusters = []
+    for g in gates:
+        if clusters and g[2] - clusters[-1][0][2] <= SPREAD:
+            clusters[-1].append(g)
+        else:
+            clusters.append([g])
+    for cl in clusters:
+        d0, spread = cl[0][2], cl[-1][2] - cl[0][2]
+        stops = [(0, "opacity:0"), (d0, "opacity:0;animation-timing-function:ease-out"), (d0 + GATE, "opacity:1"),
+                 (T - RESET - spread, "opacity:1"), (T - spread, "opacity:0"), (T, "opacity:0")]
+        by = {}
+        for t, b in stops:
+            by.setdefault(b, []).append(pct(t))
+        kf = "".join(f"{','.join(dict.fromkeys(ps))}{{{b}}}" for b, ps in by.items())
+        if kf not in names:
+            names[kf] = f"L{len(names)}"
+            out_frames.append(f"@keyframes {names[kf]}{{{kf}}}")
+        for g in cl:
+            lag = f" {n(g[2] - d0, 2)}s backwards" if g[2] - d0 > 0 else ""
+            gate_open[id(g)] = f'<g style="animation:{names[kf]} {n(T, 2)}s{lag} infinite">'
     clash = set(names.values()) & set(frames)
     if clash:
         raise ValueError(f"generated keyframe names clash with {clash}")
-    # rewrite each element's style; repeating animations keep their own timing and delay
-    pieces, at = [], 0
+    # rewrite each element's style (repeating animations keep their own timing and delay) and wrap each gated one
+    # at one offset: an element that ends there closes first, then a gate opens, then the next tag is rewritten
+    edits = [(g[0], 1, g[0], gate_open[id(g)]) for g in gates] + [(g[1], 0, g[1], "</g>") for g in gates]
     for i, (m, attrs, style, anims, _) in enumerate(found):
         lst = []
         for a in anims:
@@ -1703,8 +1771,11 @@ def _loop(css: str, markup: str, ambient=()) -> tuple:
             tag = tag.replace(f'style="{attrs["style"]}"', f'style="{new_style}"', 1)
         else:
             tag = tag[:-2] + f' style="{new_style}"/>' if tag.endswith("/>") else tag[:-1] + f' style="{new_style}">'
-        pieces += [markup[at:m.start()], tag]
-        at = m.end()
+        edits.append((m.start(), 2, m.end(), tag))
+    pieces, at = [], 0
+    for start, _, end, text in sorted(edits, key=lambda e: (e[0], e[1])):
+        pieces += [markup[at:start], text]
+        at = end
     markup = "".join(pieces) + markup[at:]
     # drop the play-once declarations (every element they reached now has its own) and keyframes nothing uses
     kept = []
@@ -1726,12 +1797,16 @@ def _loop(css: str, markup: str, ambient=()) -> tuple:
 
 
 def timed(text: str) -> list:
-    """The animations in a rendered banner that do not repeat forever (none, once it loops)."""
+    """The animations in a rendered banner that do not repeat forever (none, once it loops): every ``animation``
+    item without ``infinite``, and every ``animation-iteration-count`` that is not ``infinite``. ``animation:none``
+    (reduced motion) is not an animation; the generator writes no other longhand."""
     out = []
-    for m in re.finditer(r"animation:([^;}\"]+)", text):
-        if "!important" in m.group(1):
-            continue
-        out += [x for x in _split(m.group(1)) if _anim(x)["count"] is not None]
+    for m in re.finditer(r"animation(-iteration-count)?\s*:([^;}\"]+)", text, re.I):
+        value = m.group(2).replace("!important", "").strip()
+        if m.group(1):
+            out += [f"iteration count {c}" for c in _split(value) if c.lower() != "infinite"]
+        else:
+            out += [x for x in _split(value) if x.lower() != "none" and _anim(x)["count"] is not None]
     return out
 
 
@@ -1755,8 +1830,9 @@ def render(spec: dict, theme: str) -> str:
     motif_svg = MOTIFS[m["kind"]](doc, m, box, mini, 0.3 if mini else 0.5)
 
     label = spec.get("alt") or f"{title}: {spec.get('tagline', '')}".strip(": ")
-    css = sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 8s %ss ease-in-out infinite}"
-           "@keyframes shine{0%%{transform:translateX(-200px) skewX(-20deg)}22%%,100%%{transform:translateX(%spx) skewX(-20deg)}}"
+    # the shine sweeps the drawn title once, so the loop gives it a pass in every cycle (off the banner either side)
+    css = sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 1.76s %ss ease-in-out both}"
+           "@keyframes shine{0%%{transform:translateX(-200px) skewX(-20deg)}100%%{transform:translateX(%spx) skewX(-20deg)}}"
            ".ul{transform-box:fill-box;transform-origin:0 0;animation:grow .9s %ss ease-out both}"
            "@keyframes grow{from{transform:scaleX(0)}}"
            ".in{animation:fade .7s ease-out both}@keyframes fade{from{opacity:0;transform:translateY(6px)}}"
