@@ -20,11 +20,13 @@ turret that sweeps, nods and holds); the rest pose is the still frame. Each bann
 
 Rendering needs only the Python standard library and is deterministic: the same inputs give the same bytes. Text is
 drawn from vendored glyph outlines (``glyphs.json``, Space Grotesk, OFL-1.1), so it looks the same everywhere and
-needs no font. Banners animate with CSS keyframes only: no script, no SMIL, no external reference. Under
-``prefers-reduced-motion`` every animation stops and each element shows its base style, which is the final frame.
+needs no font. Banners animate with CSS keyframes only: no script, no SMIL, no external reference. Every banner
+loops (``_loop``): it builds, holds the finished frame for a few seconds, fades out and builds again, in one cycle that
+every element shares, so a reader who scrolls to it late still sees it draw. Under ``prefers-reduced-motion`` every
+animation stops and each element shows its base style, which is the final frame.
 ``problems()`` lists the rules a banner must pass: valid XML, a labelled ``role="img"`` root with a title, no script,
-event handler, foreignObject, image or external reference, the reduced-motion rule, and the size budget (150 KB for a
-hero, 30 KB for a card).
+event handler, foreignObject, image or external reference, the reduced-motion rule, no animation that plays once and
+stops, and the size budget (150 KB for a hero, 30 KB for a card).
 """
 from __future__ import annotations
 
@@ -175,6 +177,7 @@ class Doc:
         self.css = []
         self.defs = []
         self.ids = 0
+        self.ambient = set()      # keyframes that play while the finished frame is up (a scan), not before it
 
     def uid(self, stem: str) -> str:
         self.ids += 1
@@ -241,10 +244,14 @@ def _loops(part):
 
 def _scan_css(doc, data, poses, delay):
     """Keyframes that show one pose of the moving group at a time, following ``scan`` ([pose, seconds], ...); the
-    rest pose is the base style, so reduced motion (no animation) shows it still."""
-    scan = data["scan"]
-    period = sum(t for _, t in scan)
+    rest pose is the base style, so reduced motion (no animation) shows it still. The scan plays once a cycle, from
+    ``delay``, and ends back at the rest pose, which then holds until the banner restarts (``_loop``)."""
     fade = 0.05
+    scan = list(data["scan"])
+    rest = data.get("rest_pose")
+    if rest is not None and scan[-1][0] != rest:      # come back to rest: the scan ends where the still frame is
+        scan.append([rest, fade])
+    period = sum(t for _, t in scan)
     css = []
     for k in poses:
         stops, t = [], 0.0
@@ -266,7 +273,8 @@ def _scan_css(doc, data, poses, delay):
         elif pts[-1][0] < period:
             pts.append((period, 0))
         frames = "".join(f"{n(100 * t / period, 2)}%{{opacity:{o}}}" for t, o in pts)
-        css.append(f"@keyframes ps{k}{{{frames}}}.ps{k}{{animation:ps{k} {n(period, 2)}s {n(delay, 2)}s linear infinite}}")
+        css.append(f"@keyframes ps{k}{{{frames}}}.ps{k}{{animation:ps{k} {n(period, 2)}s {n(delay, 2)}s linear both}}")
+        doc.ambient.add(f"ps{k}")
     doc.css.append("".join(css))
 
 
@@ -346,7 +354,7 @@ def motif_cad(doc, data, box, mini, t0):
     if data.get("scan") and not mini:               # the scan starts once every group has landed
         _scan_css(doc, data, sorted({p["pose"] for p in parts if p.get("pose") is not None}),
                   t0 + 0.7 + 0.55 * max(g_last - 1, 0) + 0.9 + data.get("scan_wait", 0.8))
-    # a scan line sweeps the base as it is "traced", then idles
+    # a scan line sweeps the base as it is "traced"
     out.append(f'<rect class="scan" x="{n(x)}" y="{n(y)}" width="3" height="{n(h)}" rx="1.5"{_delay(t0)}/>')
     doc.css.append(".cad .ed{fill:none;stroke:var(--edge);stroke-width:%s;stroke-linecap:round;stroke-linejoin:round;"
                    "opacity:.9}.cad .sil{stroke:var(--edge);stroke-width:%s;stroke-linejoin:round}"
@@ -574,10 +582,13 @@ def motif_chart(doc, data, box, mini, t0):
         bw = (w - 24) / len(vals)
         for i, v in enumerate(vals):
             bh = (h - 26) * v
-            out.append(f'<rect class="b in" x="{n(x + 14 + i * bw)}" y="{n(y + h - 10 - bh)}" width="{n(bw * 0.66)}" '
-                       f'height="{n(bh)}" rx="3" style="animation-delay:{n(t0 + 0.12 * i, 2)}s,{n(t0 + 1.4 + 0.3 * i, 2)}s"/>')
-        doc.css.append(".b{fill:url(#gr);transform-box:fill-box;transform-origin:50% 100%}"
-                       ".b.in{animation:rise .7s ease-out both,load 3.2s ease-in-out infinite alternate}"
+            # the bar rises once a cycle (its group) and then breathes with the load (the bar): two elements, so
+            # the looping rise is not overridden by the endless load on the same transform
+            out.append(f'<g class="b in"{_delay(t0 + 0.12 * i)}><rect class="bv" x="{n(x + 14 + i * bw)}" '
+                       f'y="{n(y + h - 10 - bh)}" width="{n(bw * 0.66)}" height="{n(bh)}" rx="3" '
+                       f'style="animation-delay:{n(t0 + 1.4 + 0.3 * i, 2)}s"/></g>')
+        doc.css.append(".b,.bv{transform-box:fill-box;transform-origin:50% 100%}.bv{fill:url(#gr)}"
+                       ".b.in{animation:rise .7s ease-out both}.bv{animation:load 3.2s ease-in-out infinite alternate}"
                        "@keyframes rise{from{transform:scaleY(0)}}@keyframes load{to{transform:scaleY(.72)}}")
     else:
         pts = []
@@ -1041,8 +1052,7 @@ def motif_ops(doc, data, box, mini, t0):
             out.append(f'<g class="lg" style="animation-delay:{n(t0 + 0.6 + 0.9 * i, 2)}s">'
                        + doc.text("> " + line, "medium", lsz, x + 14, yy, fill="var(--a2)" if i == len(log) - 1 else "var(--muted)", track=40)
                        + "</g>")
-        doc.css.append(".lg{animation:lg 9s ease-out infinite both}"
-                       "@keyframes lg{0%{opacity:0;transform:translateX(-8px)}6%,88%{opacity:1;transform:none}100%{opacity:1}}")
+        doc.css.append(".lg{animation:lg .55s ease-out both}@keyframes lg{from{opacity:0;transform:translateX(-8px)}}")
     return "".join(out)
 
 
@@ -1461,6 +1471,349 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
     return "".join(out), sketch_css, t_name, box
 
 
+# ------------------------------------------------------------------------------------------------ the loop
+
+# endless animations that start once their part is drawn (network packets, stack packets, CAN pulses, wifi arcs,
+# talk bars): the loop gates them so they show only while their part does. Every other delay on an endless
+# animation is a phase offset on a part that shows from the start (eyes, nodes, bars), left running as it is.
+WAITS = {"pulse", "pk", "pls", "wave", "talk"}
+HOLD = 4.0          # seconds the finished frame stays up after the last element lands, before the banner restarts
+REST = 3.0          # seconds an ambient animation (a scan) rests at its still frame before the restart
+RESET = 0.6         # seconds the animated elements take to fade out at the end of a cycle
+SPREAD = 0.25       # elements of one animation whose delays lie within this many seconds share one set of keyframes
+GATE = 0.3          # seconds a delayed endless animation (a pulse, a wave) takes to fade in when it starts
+_INITIAL = {"opacity": "1", "fill-opacity": "1", "stroke-dashoffset": "0", "transform": "none", "clip-path": "none"}
+_TIMING = re.compile(r"(ease(-in|-out|-in-out)?|linear|step-start|step-end|(cubic-bezier|steps)\([^)]*\))$")
+
+
+def _split(text: str, sep: str = ",") -> list:
+    """``text`` split on ``sep`` outside parentheses."""
+    out, depth, cur = [], 0, ""
+    for c in text:
+        depth += (c == "(") - (c == ")")
+        if c == sep and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += c
+    return [x.strip() for x in out + [cur] if x.strip()]
+
+
+def _blocks(css: str) -> list:
+    """The top-level ``prelude{body}`` blocks of a stylesheet, braces matched."""
+    out, i = [], 0
+    while i < len(css) and css[i:].strip():
+        j = css.index("{", i)
+        depth, k = 1, j + 1
+        while depth:
+            depth += (css[k] == "{") - (css[k] == "}")
+            k += 1
+        out.append((css[i:j].strip(), css[j + 1:k - 1]))
+        i = k
+    return out
+
+
+def _decls(body: str) -> list:
+    return [tuple(x.strip() for x in d.split(":", 1)) for d in _split(body, ";")]
+
+
+def _secs(tok: str) -> float:
+    return float(tok[:-2]) / 1000 if tok.endswith("ms") else float(tok[:-1])
+
+
+def _anim(item: str) -> dict:
+    """One entry of an ``animation`` list, by part. Times are seconds; ``count`` is None for ``infinite``."""
+    a = {"name": None, "dur": 0.0, "delay": 0.0, "timing": "ease", "count": 1.0, "rest": []}
+    times = []
+    for tok in re.findall(r"[a-z-]+\([^)]*\)|\S+", item):
+        if re.fullmatch(r"-?(\d+\.?\d*|\.\d+)m?s", tok):
+            times.append(_secs(tok))
+        elif _TIMING.match(tok):
+            a["timing"] = tok
+        elif tok == "infinite":
+            a["count"] = None
+        elif re.fullmatch(r"\d+\.?\d*|\.\d+", tok):
+            a["count"] = float(tok)
+        elif tok in ("normal", "reverse", "alternate", "alternate-reverse", "none", "forwards", "backwards", "both",
+                     "running", "paused"):
+            a["rest"].append(tok)
+        else:
+            a["name"] = tok
+    a["dur"], a["delay"] = (times + [0.0, 0.0])[:2]
+    return a
+
+
+def _selector(sel: str) -> list:
+    """A selector as compounds [(tag or None, {classes})], for type, class and descendant selectors only."""
+    if re.search(r"[^\w\s.*-]", sel):
+        raise ValueError(f"the loop cannot match the selector {sel!r}")
+    out = []
+    for comp in sel.split():
+        tag, *classes = comp.split(".")
+        out.append((None if tag in ("", "*") else tag, set(classes)))
+    return out
+
+
+def _matches(compounds, path) -> bool:
+    """``path`` is [(tag, classes)] from the root to the element; descendant combinators only."""
+    hit = lambda c, e: (c[0] is None or c[0] == e[0]) and c[1] <= e[1]
+    if not path or not hit(compounds[-1], path[-1]):
+        return False
+    i = len(compounds) - 2
+    for e in reversed(path[:-1]):
+        if i < 0:
+            break
+        if hit(compounds[i], e):
+            i -= 1
+    return i < 0
+
+
+def _scan(rules, markup: str) -> tuple:
+    """Walk ``markup`` with the stylesheet's ``rules``. Returns (found, gates): ``found`` lists the elements with an
+    animation that plays once, as (match, attributes, style declarations, animations, computed style); ``gates``
+    lists the elements whose endless animation in ``WAITS`` waits for a delay (a pulse that starts once its board is
+    drawn) with nothing that loops around or inside them, as [start, end, delay] in ``markup``. An element counts as looping when
+    it plays an animation once, or repeats one whose keyframes the loop wrote (``L<n>``)."""
+    tag_re = re.compile(r'<(/?)([A-Za-z][\w:-]*)((?:\s+[\w:-]+="[^"]*")*)\s*(/?)>')
+    path, stack, found, gates = [], [], [], []
+
+    def close(entry, end):
+        if entry["gate"] is not None and not entry["inner"]:
+            entry["gate"][1] = end
+            gates.append(entry["gate"])
+        if (entry["looped"] or entry["inner"]) and stack:
+            stack[-1]["inner"] = True
+
+    for m in tag_re.finditer(markup):
+        if m.group(1):
+            path.pop()
+            close(stack.pop(), m.end())
+            continue
+        attrs = dict(re.findall(r'([\w:-]+)="([^"]*)"', m.group(3)))
+        path.append((m.group(2), set(attrs.get("class", "").split())))
+        style = _decls(attrs.get("style", ""))
+        hits = sorted((r for r in rules if _matches(r[2], path)), key=lambda r: (r[0], r[1]))
+        computed = {}
+        for prop, val in [d for r in hits for d in r[3]] + style:
+            computed[prop] = val
+            if prop == "animation":
+                computed.pop("animation-delay", None)
+        anims = []
+        if "animation" in computed:
+            anims = [_anim(x) for x in _split(computed["animation"])]
+            if "animation-delay" in computed:
+                delays = [_secs(t) for t in _split(computed["animation-delay"])]
+                for i, a in enumerate(anims):
+                    a["delay"] = delays[i % len(delays)]
+        once = any(a["count"] is not None for a in anims)
+        looped = once or any(re.fullmatch(r"L\d+", a["name"] or "") for a in anims)
+        if once:
+            found.append((m, attrs, style, anims, dict(computed)))
+        waits = [a["delay"] for a in anims if a["count"] is None and a["delay"] > 0 and a["name"] in WAITS]
+        inside = any(e["looped"] or e["gate"] is not None for e in stack)
+        entry = {"looped": looped, "inner": False,
+                 "gate": [m.start(), None, min(waits)] if waits and not looped and not inside else None}
+        stack.append(entry)
+        if m.group(4):
+            path.pop()
+            close(stack.pop(), m.end())
+    return found, gates
+
+
+def drifting(text: str) -> list:
+    """The elements of a rendered banner whose endless animation in ``WAITS`` waits for a delay but is not inside
+    anything that loops: from the second cycle on it would run out of step, on a banner that is fading or being rebuilt."""
+    css = re.search(r"<style>(.*?)</style>", text, re.S).group(1)
+    markup = re.sub(r"\s*</svg>\s*$", "", text[text.index("</style>") + 8:])   # the root's end tag
+    rules = []
+    for order, (pre, body) in enumerate(_blocks(css)):
+        if not pre.startswith("@"):
+            for sel in _split(pre):
+                if not re.search(r"[^\w\s.*-]", sel):           # the theme's attribute selectors set colours only
+                    comp = _selector(sel)
+                    rules.append(((sum(len(c[1]) for c in comp), sum(c[0] is not None for c in comp)), order, comp,
+                                  _decls(body)))
+    return [markup[g[0]:g[0] + 80] for g in _scan(rules, markup)[1]]
+
+
+def _loop(css: str, markup: str, ambient=()) -> tuple:
+    """Make a banner loop. Every element whose animation plays once (an intro: it fades, slides, draws or traces in)
+    is given keyframes that span one cycle of ``T`` seconds, repeated forever: the intro at its own time, the finished
+    frame held for ``HOLD`` seconds after the last element lands (``REST`` after an ``ambient`` animation such as a
+    scan ends), a ``RESET`` fade out, and the restart, so every part restarts in step. Elements of one animation whose
+    delays lie within ``SPREAD`` share keyframes and keep their stagger as an ``animation-delay``; the earlier ones
+    fade out that much sooner, so a banner clears in the order it was built. Animations that already repeat are left
+    as they are. The keyframes' easing is kept stop by stop; values a keyframe leaves out (CSS takes them from the
+    element's own style) are read from the stylesheet or the element's attributes. The base style is untouched, so
+    under reduced motion (no animation) every element still shows the finished frame.
+    Returns (css, markup, T); T is 0 when nothing plays once."""
+    blocks = _blocks(css)
+    rules, frames = [], {}
+    for order, (pre, body) in enumerate(blocks):
+        if pre.startswith("@keyframes"):
+            stops = []
+            for at, decl in _blocks(body):
+                for q in _split(at):
+                    stops.append(({"from": 0.0, "to": 1.0}.get(q) if q in ("from", "to") else float(q[:-1]) / 100,
+                                  dict(_decls(decl))))
+            frames[pre.split()[1]] = sorted(stops, key=lambda x: x[0])
+        elif not pre.startswith("@"):
+            for sel in _split(pre):
+                comp = _selector(sel)
+                spec = (sum(len(c[1]) for c in comp), sum(c[0] is not None for c in comp))
+                rules.append((spec, order, comp, _decls(body)))
+    found, gates = _scan(rules, markup)
+    if not found and not gates:
+        return css, markup, 0.0
+
+    def base(prop, computed, attrs):
+        if prop in computed:
+            return computed[prop]
+        if prop == "transform" and "transform" in attrs:
+            raise ValueError("the loop cannot restore a transform attribute; animate a child element instead")
+        return attrs.get(prop, _INITIAL.get(prop))
+
+    once = [(i, a) for i, f in enumerate(found) for a in f[3] if a["count"] is not None]
+    for i, a in once:
+        if a["count"] != 1 or "both" not in a["rest"] and "backwards" not in a["rest"] or set(a["rest"]) & {
+                "reverse", "alternate", "alternate-reverse"}:
+            raise ValueError(f"the loop needs a single forward play that fills backwards: {a}")
+        if a["name"] not in frames:
+            raise ValueError(f"no @keyframes {a['name']}")
+        for b in found[i][3]:
+            if b["count"] is None and b["name"] in frames:
+                mine = {p for _, d in frames[a["name"]] for p in d} | {"opacity"}    # the loop fades it too
+                if mine & {p for _, d in frames[b["name"]] for p in d}:
+                    raise ValueError(f"{a['name']} and the endless {b['name']} animate one property on one element")
+    built = [a["delay"] + a["dur"] for _, a in once if a["name"] not in ambient] + [g[2] + GATE for g in gates]
+    rested = [a["delay"] + a["dur"] for _, a in once if a["name"] in ambient]
+    T = round(max([max(built, default=0) + HOLD] + [t + REST for t in rested]) + RESET, 1)
+    # group: one set of keyframes per animation, element style and cluster of delays
+    groups = {}
+    for i, a in once:
+        f = found[i]
+        props = list(dict.fromkeys([p for _, d in frames[a["name"]] for p in d] + ["opacity"]))
+        start = {p: base(p, f[4], f[1]) for p in props}      # CSS fills a missing 0 % or 100 % from the base style
+        end = dict(start)
+        for at, d in frames[a["name"]]:
+            (start if at == 0 else end if at == 1 else {}).update(d)
+        key = (a["name"], a["dur"], a["timing"], tuple(start.items()), tuple(end.items()))
+        groups.setdefault(key, []).append((a["delay"], i, a))
+    names, out_frames, inline = {}, [], {}
+    pct = lambda t: n(100 * t / T, 2) + "%"
+    for (name, dur, timing, start, end), members in groups.items():
+        start, end = dict(start), dict(end)
+        members.sort(key=lambda x: x[0])
+        clusters = []
+        for d, i, a in members:
+            if clusters and d - clusters[-1][0][0] <= SPREAD:
+                clusters[-1].append((d, i, a))
+            else:
+                clusters.append([(d, i, a)])
+        for cl in clusters:
+            d0, spread = cl[0][0], cl[-1][0] - cl[0][0]
+            ef = f"animation-timing-function:{timing}"
+            body = lambda v: ";".join(f"{p}:{x}" for p, x in v.items())
+            stops = [(0, body(start))] if d0 > 0 else []
+            stops.append((d0, body(start) + ";" + ef))
+            for at, d in frames[name]:
+                if 0 < at < 1:
+                    stops.append((d0 + at * dur, body(d) + ";" + ef))
+            hidden = body(dict(end, opacity="0"))
+            stops += [(d0 + dur, body(end)), (T - RESET - spread, body(end)), (T - spread, hidden), (T, hidden)]
+            by = {}
+            for t, b in stops:
+                by.setdefault(b, []).append(pct(t))
+            kf = "".join(f"{','.join(dict.fromkeys(ps))}{{{b}}}" for b, ps in by.items())
+            if kf not in names:
+                names[kf] = f"L{len(names)}"
+                out_frames.append(f"@keyframes {names[kf]}{{{kf}}}")
+            for d, i, a in cl:
+                lag = f" {n(d - d0, 2)}s backwards" if d - d0 > 0 else ""
+                inline[(i, id(a))] = f"{names[kf]} {n(T, 2)}s{lag} infinite"
+    # a gate: hidden until its endless animation starts, shown, faded out with the rest, so it restarts in step
+    gate_open = {}
+    gates.sort(key=lambda g: g[2])
+    clusters = []
+    for g in gates:
+        if clusters and g[2] - clusters[-1][0][2] <= SPREAD:
+            clusters[-1].append(g)
+        else:
+            clusters.append([g])
+    for cl in clusters:
+        d0, spread = cl[0][2], cl[-1][2] - cl[0][2]
+        stops = [(0, "opacity:0"), (d0, "opacity:0;animation-timing-function:ease-out"), (d0 + GATE, "opacity:1"),
+                 (T - RESET - spread, "opacity:1"), (T - spread, "opacity:0"), (T, "opacity:0")]
+        by = {}
+        for t, b in stops:
+            by.setdefault(b, []).append(pct(t))
+        kf = "".join(f"{','.join(dict.fromkeys(ps))}{{{b}}}" for b, ps in by.items())
+        if kf not in names:
+            names[kf] = f"L{len(names)}"
+            out_frames.append(f"@keyframes {names[kf]}{{{kf}}}")
+        for g in cl:
+            lag = f" {n(g[2] - d0, 2)}s backwards" if g[2] - d0 > 0 else ""
+            gate_open[id(g)] = f'<g style="animation:{names[kf]} {n(T, 2)}s{lag} infinite">'
+    clash = set(names.values()) & set(frames)
+    if clash:
+        raise ValueError(f"generated keyframe names clash with {clash}")
+    # rewrite each element's style (repeating animations keep their own timing and delay) and wrap each gated one
+    # at one offset: an element that ends there closes first, then a gate opens, then the next tag is rewritten
+    edits = [(g[0], 1, g[0], gate_open[id(g)]) for g in gates] + [(g[1], 0, g[1], "</g>") for g in gates]
+    for i, (m, attrs, style, anims, _) in enumerate(found):
+        lst = []
+        for a in anims:
+            if a["count"] is None:
+                lst.append(" ".join([a["name"], n(a["dur"], 2) + "s", n(a["delay"], 2) + "s", a["timing"], "infinite"]
+                                    + [r for r in a["rest"]]))
+            else:
+                lst.append(inline[(i, id(a))])
+        decl = [(p, v) for p, v in style if p not in ("animation", "animation-delay")] + [("animation", ",".join(lst))]
+        new_style = ";".join(f"{p}:{v}" for p, v in decl)
+        tag = m.group(0)
+        if "style" in attrs:
+            tag = tag.replace(f'style="{attrs["style"]}"', f'style="{new_style}"', 1)
+        else:
+            tag = tag[:-2] + f' style="{new_style}"/>' if tag.endswith("/>") else tag[:-1] + f' style="{new_style}">'
+        edits.append((m.start(), 2, m.end(), tag))
+    pieces, at = [], 0
+    for start, _, end, text in sorted(edits, key=lambda e: (e[0], e[1])):
+        pieces += [markup[at:start], text]
+        at = end
+    markup = "".join(pieces) + markup[at:]
+    # drop the play-once declarations (every element they reached now has its own) and keyframes nothing uses
+    kept = []
+    for pre, body in blocks:
+        if not pre.startswith("@"):
+            ds = _decls(body)
+            ds2 = [(p, v) for p, v in ds if not (p == "animation" and any(_anim(x)["count"] is not None for x in _split(v)))]
+            if not ds2:
+                continue
+            if ds2 != ds:
+                body = ";".join(f"{p}:{v}" for p, v in ds2)
+        kept.append((pre, body))
+    text = "".join(f"{pre}{{{body}}}" for pre, body in kept if not pre.startswith("@keyframes")) + markup
+    used = set(re.findall(r"animation:([^;}\"]+)", text))
+    used = {_anim(x)["name"] for u in used for x in _split(u)}
+    css = "".join(f"{pre}{{{body}}}" for pre, body in kept
+                  if not pre.startswith("@keyframes") or pre.split()[1] in used) + "".join(out_frames)
+    return css, markup, T
+
+
+def timed(text: str) -> list:
+    """The animations in a rendered banner that do not repeat forever (none, once it loops): every ``animation``
+    item without ``infinite``, and every ``animation-iteration-count`` that is not ``infinite``. ``animation:none``
+    (reduced motion) is not an animation; the generator writes no other longhand."""
+    out = []
+    for m in re.finditer(r"animation(-iteration-count)?\s*:([^;}\"]+)", text, re.I):
+        value = m.group(2).replace("!important", "").strip()
+        if m.group(1):
+            out += [f"iteration count {c}" for c in _split(value) if c.lower() != "infinite"]
+        else:
+            out += [x for x in _split(value) if x.lower() != "none" and _anim(x)["count"] is not None]
+    return out
+
+
 def render(spec: dict, theme: str) -> str:
     kind = spec.get("kind", "hero")
     W, H = SIZES[kind]
@@ -1481,13 +1834,14 @@ def render(spec: dict, theme: str) -> str:
     motif_svg = MOTIFS[m["kind"]](doc, m, box, mini, 0.3 if mini else 0.5)
 
     label = spec.get("alt") or f"{title}: {spec.get('tagline', '')}".strip(": ")
-    css = sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 8s %ss ease-in-out infinite}"
-           "@keyframes shine{0%%{transform:translateX(-200px) skewX(-20deg)}22%%,100%%{transform:translateX(%spx) skewX(-20deg)}}"
+    # the shine sweeps the drawn title once, so the loop gives it a pass in every cycle (off the banner either side)
+    css = sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 1.76s %ss ease-in-out both}"
+           "@keyframes shine{0%%{transform:translateX(-200px) skewX(-20deg)}100%%{transform:translateX(%spx) skewX(-20deg)}}"
            ".ul{transform-box:fill-box;transform-origin:0 0;animation:grow .9s %ss ease-out both}"
            "@keyframes grow{from{transform:scaleX(0)}}"
            ".in{animation:fade .7s ease-out both}@keyframes fade{from{opacity:0;transform:translateY(6px)}}"
            ".cbg{fill:var(--bg2);stroke:var(--line)}.cpv{fill:none;stroke:var(--a1);stroke-dasharray:4 3}"
-           % (n(t_name + 0.6, 2), n(W + 400), n(t_name * 0.5, 2))) + "".join(dict.fromkeys(doc.css)) + REDUCED_MOTION
+           % (n(t_name + 0.6, 2), n(W + 400), n(t_name * 0.5, 2))) + "".join(dict.fromkeys(doc.css))
     if theme == "light":
         css = css.replace(".sh{opacity:.35", ".sh{opacity:.55")
     bg = (f'<linearGradient id="bgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{pal["bg"]}"/>'
@@ -1511,11 +1865,13 @@ def render(spec: dict, theme: str) -> str:
     src = m.get("source") if isinstance(m.get("source"), dict) else {}
     if desc and src.get("repo") and src.get("commit") and not spec.get("private"):
         desc += f" Drawn from {src['repo']} at commit {src['commit'][:12]}."
+    markup = (f"<defs>{bg}{''.join(doc.defs)}{doc.glyph_defs()}</defs>{frame}"
+              + f'<g class="mo">{motif_svg}</g>' + "".join(body))
+    css, markup, _ = _loop(css, markup, doc.ambient)
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
             f'aria-label="{attr(label)}"><title>{escape(label)}</title>'
             + (f"<desc>{escape(desc)}</desc>" if desc else "")
-            + f"<style>{css}</style><defs>{bg}{''.join(doc.defs)}{doc.glyph_defs()}</defs>{frame}"
-            + f'<g class="mo">{motif_svg}</g>' + "".join(body) + "</svg>\n")
+            + f"<style>{css}{REDUCED_MOTION}</style>{markup}</svg>\n")
     return _colour(svg, spec.get("palette", "teal"), theme)
 
 
@@ -1575,6 +1931,8 @@ def problems(text: str, kind: str = "hero") -> list:
             out.append(f"external url({m.group(1)})")
     if REDUCED_MOTION not in text:
         out.append("no prefers-reduced-motion rule")
+    for a in timed(text):
+        out.append(f"an animation that plays once and stops ({a}): every timed animation must repeat")
     return out
 
 

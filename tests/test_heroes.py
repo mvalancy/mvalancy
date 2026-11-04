@@ -92,10 +92,10 @@ class Sample(unittest.TestCase):
         motif = {"kind": "cad", "parts": parts, "rest_pose": 1, "scan": [[1, 1.0], [0, 0.5], [2, 0.5]]}
         text = sample("hero", motif=motif)
         self.assertEqual(heroes.problems(text, "hero"), [])
-        self.assertIn('<g class="ps1">', text)                       # the rest pose is the still frame
-        self.assertIn('<g class="ps0" opacity="0">', text)
-        self.assertIn('<g class="ps2" opacity="0">', text)
-        self.assertIn("@keyframes ps0{", text)
+        self.assertRegex(text, r'<g class="ps1" style="animation:L\d+ ')     # the rest pose is the still frame
+        self.assertRegex(text, r'<g class="ps0" opacity="0" style="animation:L\d+ ')
+        self.assertRegex(text, r'<g class="ps2" opacity="0" style="animation:L\d+ ')
+        self.assertEqual(heroes.timed(text), [])                      # the scan plays once a cycle, in step
         self.assertIn('class="sil glass"', text)                     # not the title's guide-line class ("gl")
         card = sample("card", motif=motif)                            # cards keep only the rest pose
         self.assertNotIn("ps0", card)
@@ -175,11 +175,12 @@ class Sample(unittest.TestCase):
         self.assertEqual(hero.count('class="pls"'), 2)               # a pulse on each line of the pair
         self.assertIn(".pcb .pls{fill:none;stroke:var(--edge)".replace("var(--edge)", heroes.palette("violet", "dark")["edge"]), hero)
         self.assertIn("opacity:0;animation:pls", hero)               # pulses are hidden in the still frame
-        self.assertIn("stroke-dashoffset:0;animation:lay", hero)     # the pairs are fully drawn in the still frame
+        self.assertIn(".pcb .can{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;"
+                      "stroke-dashoffset:0}", hero)                   # the pairs are fully drawn in the still frame
         self.assertIn('class="ld"', hero)                            # the left label has a leader line
         card = sample("card", motif=motif)
         self.assertEqual(heroes.problems(card, "card"), [])
-        self.assertNotIn('class="pls"', card)                        # a card stays still once drawn
+        self.assertNotIn('class="pls"', card)                        # no pulses on a card: only the drawing loops
         self.assertNotIn('class="ld"', card)
 
     def test_older_kicad_net_numbers_references_and_unangled_pads(self):
@@ -223,6 +224,91 @@ class Sample(unittest.TestCase):
 class Rules(unittest.TestCase):
     """Each rule catches an SVG that breaks it, so a rule that stops checking is caught too."""
 
+    @staticmethod
+    def specs():
+        """Every motif at every size, and every committed banner spec."""
+        specs = [dict(heroes.SAMPLE, kind=k, motif=m) for k in ("hero", "spot", "card") for m in (
+            {"kind": "network"}, {"kind": "chart", "style": "bars"}, {"kind": "chart", "style": "solar"},
+            {"kind": "slides"}, {"kind": "terminal", "lines": [10, 30, 20]}, {"kind": "dial"}, {"kind": "circuit"},
+            {"kind": "stack"}, {"kind": "eye", "pan": 1, "zoom": [100, 500]})]
+        return specs + [b for b in heroes.banners()
+                        if not (isinstance(b["out"], str) and b["out"].startswith("Valpatel/.github"))]
+
+    def test_every_timed_animation_repeats_and_reduced_motion_shows_the_finished_frame(self):
+        """Every banner loops: no animation plays once and stops, the intros share one cycle (so they restart in
+        step), and the reduced-motion rule that stops them all is there. Checked on every motif, every size and every
+        committed banner spec."""
+        for spec in self.specs():
+            for theme in spec.get("themes", ["dark"]):
+                with self.subTest(banner=spec["name"], kind=spec.get("kind"), motif=(spec.get("motif") or {}).get("kind")):
+                    text = heroes.render(spec, theme)
+                    self.assertEqual(heroes.timed(text), [])
+                    self.assertIn(heroes.REDUCED_MOTION, text)
+                    cycles = {float(t) for t in re.findall(r'animation:L\d+ ([\d.]+)s', text)}
+                    self.assertEqual(len(cycles), 1, cycles)                  # one cycle for every intro
+                    T = cycles.pop()
+                    self.assertGreaterEqual(T, heroes.HOLD + heroes.RESET)
+                    for lag in re.findall(r'animation:L\d+ [\d.]+s ([\d.]+)s backwards', text):
+                        self.assertLessEqual(float(lag), heroes.SPREAD)     # a stagger, never a second start
+                    self.assertEqual(heroes.drifting(text), [])               # no endless pulse outlives its part
+
+    def test_a_delayed_endless_animation_restarts_with_the_cycle(self):
+        """A pulse that starts once its part is drawn is gated: hidden until its delay, faded out with the rest, so it
+        never runs on a banner that is fading or being rebuilt. One already inside a looping part is left alone."""
+        css = (".in{animation:fade 1s both}@keyframes fade{from{opacity:0}}"
+               ".p{animation:pulse 2s 3s linear infinite}@keyframes pulse{to{opacity:.2}}"
+               ".e{animation:blink 5s 1s infinite}@keyframes blink{50%{opacity:.4}}")
+        out_css, markup, T = heroes._loop(css, '<g class="in"><path class="p"/></g><path class="p"/><g/><g class="e"/>')
+        self.assertEqual(T, round(3 + heroes.GATE + heroes.HOLD + heroes.RESET, 1))   # the pulse gets the full hold
+        self.assertEqual(markup.count("<g style="), 1)                       # only the free pulse is wrapped
+        self.assertRegex(markup, r'^<g class="in" style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g>'
+                                 r'<g style="animation:L\d+ [\d.]+s infinite"><path class="p"/></g><g/><g class="e"/>$')
+        pct = lambda t: heroes.n(100 * t / T, 2) + "%"
+        self.assertIn(f"{pct(3)}{{opacity:0;animation-timing-function:ease-out}}", out_css)
+        self.assertEqual(heroes.drifting(f"<style>{css}</style><path class=\"p\"/>"), ['<path class="p"/>'])
+
+    def test_a_phase_offset_is_not_gated(self):
+        """Only the animations in WAITS start once their part is drawn. Any other delay on an endless animation is a
+        phase offset on a part that shows from the first frame (the eye looks around, the face blinks, the nodes
+        glow), so the loop never hides it: in every banner each gate wraps an animation from WAITS, and the eyes,
+        nodes, bars and blips stay unwrapped."""
+        phased = {"look", "fblink", "blink", "zoom", "glow", "play", "hp", "blip", "cta"}
+        for spec in self.specs():
+            text = heroes.render(spec, "dark")
+            with self.subTest(banner=spec["name"], kind=spec.get("kind"), motif=(spec.get("motif") or {}).get("kind")):
+                for inner in re.findall(r'<g style="animation:L\d+ [^"]*">(<[^>]*>)', text):
+                    cls = re.search(r'class="([^"]*)"', inner)
+                    names = set(re.findall(r'animation:(\w+)', inner))
+                    if cls:
+                        for c in cls.group(1).split():
+                            names |= set(re.findall(r'\.' + re.escape(c) + r'\{[^}]*?animation:(\w+)', text))
+                    self.assertTrue(names & heroes.WAITS, inner)
+                    self.assertFalse(names & phased, inner)
+
+    def test_a_looped_intro_holds_its_finished_frame_then_fades(self):
+        """The loop keeps an intro's easing and timing, holds its end state and fades out before the restart."""
+        css = ".a{opacity:.5}.in{animation:fade 1s 2s ease-out both}@keyframes fade{from{opacity:0;transform:translateY(6px)}}"
+        out_css, markup, T = heroes._loop(css, '<g class="a in"/><g class="a in" style="animation-delay:2.1s"/>')
+        self.assertEqual(T, round(3.1 + heroes.HOLD + heroes.RESET, 1))
+        self.assertNotIn("@keyframes fade", out_css)                          # nothing plays it once any more
+        self.assertNotIn("animation:fade", out_css)
+        self.assertIn(f'<g class="a in" style="animation:L0 {heroes.n(T, 2)}s infinite"/>', markup)
+        self.assertIn(f'style="animation:L0 {heroes.n(T, 2)}s .1s backwards infinite"', markup)   # shared, staggered
+        pct = lambda t: heroes.n(100 * t / T, 2) + "%"
+        self.assertIn(f"{pct(2)}{{opacity:0;transform:translateY(6px);animation-timing-function:ease-out}}", out_css)
+        self.assertIn(f"{pct(3)},{pct(T - heroes.RESET - 0.1)}{{opacity:.5;transform:none}}", out_css)   # its own .5
+        self.assertIn(f"{pct(T - 0.1)},100%{{opacity:0;transform:none}}", out_css)
+
+    def test_the_loop_refuses_what_it_cannot_restart(self):
+        with self.assertRaises(ValueError):          # a transform attribute that the keyframes would replace
+            heroes._loop(".in{animation:g 1s both}@keyframes g{from{transform:scale(0)}}", '<g class="in" transform="scale(2)"/>')
+        with self.assertRaises(ValueError):          # a one-shot and an endless animation on one property
+            heroes._loop(".x{animation:g 1s both,h 2s infinite}@keyframes g{from{opacity:0}}@keyframes h{to{opacity:.5}}",
+                         '<g class="x"/>')
+        with self.assertRaises(ValueError):          # ... the opacity the loop fades counts too
+            heroes._loop(".x{animation:g 1s both,h 2s infinite}@keyframes g{from{transform:scale(0)}}"
+                         "@keyframes h{to{opacity:.5}}", '<g class="x"/>')
+
     def setUp(self):
         self.good = sample("card")
 
@@ -246,6 +332,14 @@ class Rules(unittest.TestCase):
 
     def test_reduced_motion(self):
         self.assertTrue(heroes.problems(self.broken(heroes.REDUCED_MOTION, ""), "card"))
+
+    def test_an_animation_that_plays_once(self):
+        self.assertEqual(heroes.timed(self.good), [])
+        self.assertEqual(heroes.timed('<g style="animation:none"/>'), [])
+        self.assertEqual(heroes.timed(".a{animation:a 2s infinite;animation-iteration-count:3}"), ["iteration count 3"])
+        once = re.sub(r"(animation:L\d+ [\d.]+s) infinite", r"\1 1 both", self.good, count=1)
+        self.assertEqual(len(heroes.timed(once)), 1)
+        self.assertTrue(heroes.problems(once, "card"))
 
     def test_label_and_title(self):
         self.assertTrue(heroes.problems(self.broken('role="img"', 'role="presentation"'), "card"))
