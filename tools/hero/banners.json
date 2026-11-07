@@ -638,8 +638,8 @@
    "backdrop": "grid",
    "hud": true,
    "out": "GraphDone/.github:profile/img/system/graphdone-system",
-   "alt": "GraphDone system map: people use the web app, which reaches the shared graph through the GraphQL API; AI agents reach it directly through the MCP server and the agent API (in development). GraphDone-Core is open source (MIT), self-hosted by you or hosted at graphdone.com.",
-   "desc": "How GraphDone fits together, drawn as neon conduits on a grid. People connect to the web app, which goes through the GraphQL API to the shared graph (GraphDone's logo, with HUD rings). AI agents connect to the MCP server and to the agent API, which is dashed because it is in development on Core's dev branch; both reach the shared graph directly, not through GraphQL. These parts are inside GraphDone-Core, which is open source under MIT, and Core is deployed either self-hosted by you or as the hosted app at graphdone.com. Data pulses run along the finished paths.",
+   "alt": "GraphDone system map: people reach the shared graph through the web app and the GraphQL API; AI agents reach it through the MCP server or the agent API (in development). GraphDone-Core is MIT, self-hosted or hosted at graphdone.com.",
+   "desc": "How GraphDone fits together, drawn as neon conduits on a grid. People connect to the web app, which goes through the GraphQL API to the shared graph (GraphDone's logo, with HUD rings). AI agents connect to the MCP server and to the agent API, which is dashed (and so is the link into it) because it is in development on Core's dev branch; both reach the shared graph directly, not through GraphQL. These parts are inside GraphDone-Core, which is open source under MIT, and Core is deployed either self-hosted by you or as the hosted app at graphdone.com. Data pulses run along the finished paths.",
    "motif": {
     "kind": "diagram",
     "source": "GraphDone-Core's entry points as they stand: the web app's client talks to the GraphQL server; the MCP server and the agent API (on dev) use the graph service directly. Deployment: self-hosted, or graphdone.com. No store is named.",
@@ -677,7 +677,7 @@
       "colour": "PEOPLE",
       "style": "pill",
       "at": [
-       156,
+       150,
        50
       ]
      },
@@ -688,7 +688,7 @@
       "colour": "AGENT",
       "style": "pill",
       "at": [
-       509,
+       498,
        50
       ]
      },
@@ -698,7 +698,7 @@
       "icon": "window",
       "colour": "CORE",
       "at": [
-       156,
+       150,
        212
       ],
       "w": 200
@@ -709,7 +709,7 @@
       "icon": "chip",
       "colour": "CORE",
       "at": [
-       386,
+       372,
        212
       ],
       "w": 200
@@ -722,7 +722,7 @@
       "colour": "AGENT",
       "dashed": true,
       "at": [
-       632,
+       624,
        212
       ],
       "w": 200
@@ -733,7 +733,7 @@
       "icon": "code",
       "colour": "CORE",
       "at": [
-       156,
+       150,
        318
       ],
       "w": 200
@@ -744,7 +744,7 @@
       "style": "hub",
       "colour": "GRAPH",
       "at": [
-       386,
+       372,
        380
       ],
       "r": 30
@@ -779,9 +779,9 @@
       "tag": "OPEN SOURCE · MIT",
       "colour": "CORE",
       "box": [
-       32,
+       30,
        134,
-       772,
+       776,
        488
       ]
      }
@@ -797,7 +797,8 @@
      },
      {
       "from": "agents",
-      "to": "agentapi"
+      "to": "agentapi",
+      "dashed": true
      },
      {
       "from": "web",

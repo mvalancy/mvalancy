@@ -82,7 +82,7 @@ class Sample(unittest.TestCase):
         for spec in heroes.banners():
             if spec.get("palette") == "graphdone":
                 with self.subTest(banner=spec["name"]):
-                    self.assertNotRegex(json.dumps(spec, ensure_ascii=False).lower(), "neo4j|cypher")
+                    self.assertNotRegex(json.dumps(spec, ensure_ascii=False).lower(), r"neo4j|cypher|sqlite|postgres|\bd1\b|database")
 
     def test_a_system_banner_draws_its_parts_with_icons_and_its_own_colours(self):
         motif = {"kind": "topology", "items": [["CORE", "Web app", "icon:window", "OPEN CORE"],
@@ -117,6 +117,14 @@ class Sample(unittest.TestCase):
             self.assertNotIn("shine", text)                              # no title, so no title animation
             self.assertEqual(heroes.timed(text), [])                     # nothing plays once and stops
         self.assertEqual(heroes.THEMES["diagram"], ["light", "dark"])
+        for bad in ({"colour": "NOPE"}, {"style": "box"}):                  # a typo is an error, not a guess
+            spec = dict(motif, nodes=[dict(motif["nodes"][1], **bad)] + motif["nodes"][2:])
+            with self.assertRaises(ValueError):
+                heroes.render(dict(heroes.SAMPLE, kind="diagram", motif=spec), "dark")
+        for edge in ({"from": "a", "to": "x"}, {"from": "m", "to": "g", "side": "bottom"},
+                     {"from": "c", "to": "s", "side": "left"}):
+            with self.assertRaises(ValueError):
+                heroes.render(dict(heroes.SAMPLE, kind="diagram", motif=dict(motif, edges=[edge])), "dark")
 
     def test_the_stack_motif_fits_a_hero(self):
         text = sample("hero", motif={"kind": "stack"})

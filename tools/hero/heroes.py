@@ -1767,12 +1767,23 @@ def motif_diagram(doc, data, box, mini, t0):
     corners and an arrowhead). Positions are the spec's, in canvas units: the spec says what connects to what and the
     motif only draws it. A ``dashed`` node or edge is not finished yet (or, for an edge, a deployment rather than a
     data path) and carries no data pulses. It is a still picture: the only motion is data pulses running along the
-    solid conduits and the hub's HUD rings turning, so under reduced motion it reads the same, without the pulses."""
+    solid conduits and the hub's HUD rings turning, so under reduced motion it reads the same, without the pulses.
+    An edge leaves the bottom of its source and enters its target's ``side``: ``top`` (the default; it turns at
+    ``via``, a y, else half way, and lands at ``x`` if given, else the target's middle) or ``left``/``right`` (it runs
+    down, then across). An edge from a group leaves the group's lower edge straight down into a target's top. A
+    node's ``colour`` is a key of ``colours`` or a literal colour; the hub keeps the logo's own colours. Anything
+    else in a spec (an unknown id, colour key, side or style) is an error, not a guess."""
     light = getattr(doc, "theme", "dark") != "dark"
     cols = {k: v[1 if light else 0] for k, v in data.get("colours", {}).items()}
-    col = lambda key: cols.get(key, key if key and key.startswith(("#", "var(")) else "var(--a1)")
+
+    def col(key):
+        if key is None or key.startswith(("#", "var(")):
+            return key or "var(--a1)"
+        if key not in cols:
+            raise ValueError(f"diagram: no colour {key!r} in colours")
+        return cols[key]
     cap = glyphs()["cap"] / glyphs()["upm"]
-    ls, ts = data.get("label_size", 21), data.get("tag_size", 15)
+    ls, ts = data.get("label_size", 21), data.get("tag_size", 16)
     nodes, boxes, out = {}, {}, []
     glows = {}
 
@@ -1783,6 +1794,8 @@ def motif_diagram(doc, data, box, mini, t0):
                             f'<stop offset="1" stop-color="{c}" stop-opacity="0"/></radialGradient>')
         return glows[c]
     for nd in data["nodes"]:                             # measure every node first: edges need their boxes
+        if nd.get("style", "card") not in ("card", "pill", "hub"):
+            raise ValueError(f"diagram: node {nd['id']!r} has no style {nd['style']!r}")
         X, Y = nd["at"]
         if nd.get("style") == "hub":
             R = nd.get("r", 30)
@@ -1809,13 +1822,18 @@ def motif_diagram(doc, data, box, mini, t0):
                    f'stroke="{c}" stroke-width="2.6" stroke-linecap="square"/>')
         gx, gy = x0 + 22, y1 - 22
         out.append(doc.text(g["label"], "bold", 22, gx, gy - 24, fill="var(--ink)")
-                   + doc.text(g.get("tag", ""), "medium", 14, gx, gy, fill=c, track=130))
+                   + doc.text(g.get("tag", ""), "medium", ts, gx, gy, fill=c, track=130))
     # ---- edges: right-angled conduits with rounded corners, a glow under a gradient line, an arrowhead
     pulses, P = [], data.get("pulse", 2.4)
+    gcol = {g["id"]: g.get("colour") for g in data.get("groups", [])}
     for k, e in enumerate(data.get("edges", [])):
+        for end in ("from", "to"):
+            if e[end] not in boxes:
+                raise ValueError(f"diagram: edge {end} {e[end]!r} is no node or group")
         a, b = boxes[e["from"]], boxes[e["to"]]
         side = e.get("side", "top")                      # where the conduit enters its target
-        tb = nodes.get(e["to"], {})
+        if side not in ("top", "left", "right") or (e["from"] in gcol and side != "top"):
+            raise ValueError(f"diagram: edge {e['from']}->{e['to']} cannot enter its target's {side!r}")
         if side == "top":
             x1, y1 = e.get("x", (b[0] + b[2]) / 2), b[1]
         else:
@@ -1840,9 +1858,8 @@ def motif_diagram(doc, data, box, mini, t0):
         ux, uy = (ex - fx) / L, (ey - fy) / L
         tip = (ex - ux * 3, ey - uy * 3)
         d += f"L{n(tip[0] - ux * 9)} {n(tip[1] - uy * 9)}"
-        ca = col(nodes[e["from"]]["colour"]) if e["from"] in nodes else col(next(
-            g.get("colour") for g in data["groups"] if g["id"] == e["from"]))
-        cb = col(tb.get("colour"))
+        ca = col(nodes[e["from"]].get("colour") if e["from"] in nodes else gcol[e["from"]])
+        cb = col(nodes[e["to"]].get("colour") if e["to"] in nodes else gcol[e["to"]])
         gid = doc.uid("dgs")
         doc.defs.append(f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{n(x0)}" y1="{n(y0)}" '
                         f'x2="{n(ex)}" y2="{n(ey)}"><stop offset="0" stop-color="{ca}"/>'
