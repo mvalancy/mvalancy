@@ -1476,7 +1476,7 @@ def motif_topology(doc, data, box, mini, t0):
     if mini or box[3] < 300 or box[2] < 440:
         return motif_board(doc, data, box, mini, t0)
     x, y, w, h = box
-    light = getattr(doc, "theme", "dark") == "light"
+    light = getattr(doc, "theme", "dark") != "dark"      # light or auto: the deeper colours read on both
     types = GD_TYPES_LIGHT if light else GD_TYPES
     done_c = "#16a34a" if light else GD_DONE
     W, H = getattr(doc, "size", SIZES["hero"])
@@ -1487,7 +1487,8 @@ def motif_topology(doc, data, box, mini, t0):
     deps = [(a, b) for a, b in data.get("deps", []) if a < N and b < N]
     order = [i for i in data.get("order", range(N)) if i < N]
     order += [i for i in range(N) if i not in order]
-    angles = data.get("angles") or [200 + 360 * k / N for k in range(N)]
+    angles = list(data.get("angles") or [])[:N]
+    angles += [200 + 360 * k / N for k in range(len(angles), N)]      # evenly round the orbit where none is given
     cx, cy = x + w * 0.51, y + h * 0.47                  # the orbit's centre; the outcome floats there
     rx, ry = w * 0.37, h * 0.28
     R = min(w, h) * 0.105                                # the logo's radius
@@ -1554,8 +1555,8 @@ def motif_topology(doc, data, box, mini, t0):
         ta, tb = angles[a], angles[b]
         d = (tb - ta + 540) % 360 - 180
         steps = max(4, int(abs(d) / 4))
-        pts = [(cx + rx * 1.0 * math.cos(math.radians(ta + d * s / steps)),
-                cy + ry * 1.0 * math.sin(math.radians(ta + d * s / steps))) for s in range(steps + 1)]
+        pts = [(cx + rx * math.cos(math.radians(ta + d * s / steps)),
+                cy + ry * math.sin(math.radians(ta + d * s / steps))) for s in range(steps + 1)]
         return poly(pts)
     dep_lit, dep_flow = [], []
     Pf = 1.6
@@ -1601,8 +1602,8 @@ def motif_topology(doc, data, box, mini, t0):
     logo.append(f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R)}" fill="url(#{gg})"/>'
                 f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(7 * k * 1.2)}" fill="#fff" stroke="#4f46e5" '
                 f'stroke-width="{n(2 * k)}"/>')
-    rings = (f'<g class="gtd"{_delay(t0 + .7)}><circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 14)}" class="gtr1"/>'
-             f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 22)}" class="gtr2"/></g>')
+    rings = (f'<g class="gtd"{_delay(t0 + .7)}><circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 14)}" pathLength="360" class="gtr1"/>'
+             f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 22)}" pathLength="120" class="gtr2"/></g>')
     out.append(rings + f'<g class="gdpop" style="transform-origin:{n(cx)}px {n(cy)}px;animation-delay:{n(t0 + 0.5, 2)}s">'
                + "".join(logo) + "</g>")
     out.append(f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 6)}" pathLength="1" class="gtc"{_delay(t_final)}/>'
@@ -1628,7 +1629,7 @@ def motif_topology(doc, data, box, mini, t0):
                                    fill="var(--ink)"))
         # the callout: a tick out of the node to a bar, the label above it (back of the orbit) or below it (front)
         up = z < 0
-        ts, cs = 15, 10.5
+        ts, cs = 15, 11.5
         tag = f"{kind} · {'AI AGENT' if who == 'agent' else who.upper()}"
         lw = max(doc.width(title, "medium", ts), doc.width(tag, "medium", cs, 120))
         lx = min(max(px - lw / 2, x), x + w - lw)
@@ -1638,7 +1639,7 @@ def motif_topology(doc, data, box, mini, t0):
             ty, gy = y1 - 7, y1 - 7 - ts * cap - 8
         else:
             gy, ty = y1 + 7 + cs * cap, y1 + 7 + cs * cap + 8 + ts * cap
-        top = (gy if up else ty) - ts * cap - 6 if up else y1 + 2
+        top = gy - cs * cap - 6 if up else y1 + 2
         bot = y1 - 2 if up else ty + 6
         call = (f'<rect x="{n(lx - 6)}" y="{n(top)}" width="{n(lw + 12)}" height="{n(bot - top)}" rx="3" class="gtpl"/>'
                 f'<path d="M{n(px)} {n(y0)}V{n(y1)}M{n(lx)} {n(y1)}H{n(lx + lw)}" class="gtcl" stroke="{col}"/>'
@@ -1658,7 +1659,7 @@ def motif_topology(doc, data, box, mini, t0):
         out.append(f'<g class="gtn" style="transform-origin:{n(px)}px {n(py)}px;animation-delay:{n(t0 + .7 + .08 * i, 2)}s">'
                    f'{"".join(body)}</g>{ring}<g class="gtd"{_delay(t0 + 1 + .08 * i)}>{call}</g>')
     # ---- the readout, bottom right: the outcome, and the count of items done
-    rs, rt = 10.5, 15
+    rs, rt = 12, 15
     ox1 = x + w
     lines, rt = wrap(doc, data.get("outcome", ""), "medium", rt, 160, 2)
     tw = max(doc.width(t, "medium", rt) for t in lines)
@@ -1678,10 +1679,10 @@ def motif_topology(doc, data, box, mini, t0):
         txt = doc.text(f"{j}/{N} DONE", "medium", rs, rx0 + cw, ry0, fill=done_c if j == N else "var(--muted)", track=160)
         a = done[order[j - 1]] if j else t0 + 1.2
         if j == N:
-            out.append(f'<g class="gtd"{_delay(a)}>{txt}</g>')
+            out.append(f'<g class="gtqf" style="animation:gtqn .02s {n(a - .02, 2)}s step-end both">{txt}</g>')
         else:
             out.append(f'<g class="gtq" style="animation:gtq {n(done[order[j]] - a, 2)}s {n(a, 2)}s linear both">{txt}</g>')
-    P1, P2, Pp, Pd = 24.0, 36.0, 2.6, 14.0
+    P1, P2, Pp, Pd = 30.0, 30.0, 2.6, 14.0      # rings: a quarter and a third of a turn a cycle
     doc.periods.update(gtf=Pf, gtpf=Pf, gtr1=P1, gtr2=P2, gtpi=Pp, gth=Pp * 2, gtp0=Pd * 2, gtp1=Pd, gtof=12.0,
                        gtsc=Pscan)
     halo = ".55" if light else ".8"
@@ -1717,10 +1718,10 @@ def motif_topology(doc, data, box, mini, t0):
         "@keyframes gdpop{from{opacity:0;transform:scale(0)}}"
         ".gdpop{animation:gdpop .7s cubic-bezier(.3,1.4,.5,1) both}"
         ".gtn{animation:gdpop .5s cubic-bezier(.3,1.5,.5,1) both}"
-        ".gtr1{fill:none;stroke:var(--a1);stroke-width:1.5;stroke-dasharray:1.5 5;stroke-opacity:.8;transform-box:fill-box;"
-        "transform-origin:50%% 50%%;animation:gtr1 24s linear infinite}@keyframes gtr1{to{transform:rotate(360deg)}}"
-        ".gtr2{fill:none;stroke:var(--a2);stroke-width:2;stroke-dasharray:60 18 8 18;stroke-opacity:.6;transform-box:fill-box;"
-        "transform-origin:50%% 50%%;animation:gtr2 36s linear infinite}@keyframes gtr2{to{transform:rotate(-360deg)}}"
+        ".gtr1{fill:none;stroke:var(--a1);stroke-width:1.5;stroke-dasharray:1.5 4.5;stroke-opacity:.8;transform-box:fill-box;"
+        "transform-origin:50%% 50%%;animation:gtr1 12s linear infinite}@keyframes gtr1{to{transform:rotate(90deg)}}"
+        ".gtr2{fill:none;stroke:var(--a2);stroke-width:2;stroke-dasharray:24 6 4 6;stroke-opacity:.6;transform-box:fill-box;"
+        "transform-origin:50%% 50%%;animation:gtr2 12s linear infinite}@keyframes gtr2{to{transform:rotate(-120deg)}}"
         ".gtc{fill:none;stroke:%s;stroke-width:3;stroke-linecap:round;stroke-dasharray:1;animation:gddraw .8s ease-in-out both}"
         ".gtpi{fill:none;stroke:%s;stroke-width:2;opacity:0;animation:gtpi 2.6s ease-out infinite}"
         "@keyframes gtpi{0%%{opacity:.8;transform:scale(1)}100%%{opacity:0;transform:scale(1.9)}}"
@@ -1728,7 +1729,7 @@ def motif_topology(doc, data, box, mini, t0):
         ".gtx{fill:none;stroke-width:3;opacity:0;animation:gtx .7s ease-out both}"
         "@keyframes gtx{0%%{opacity:0;transform:scale(1)}12%%{opacity:.9;transform:scale(1.1)}100%%{opacity:0;transform:scale(2.2)}}"
         ".gtcl{fill:none;stroke-width:1.3;stroke-opacity:.8}.gtpl{fill:var(--bg);fill-opacity:.62}"
-        ".gtq{opacity:0}@keyframes gtq{0%%{opacity:0}1%%{opacity:1}99%%{opacity:1}100%%{opacity:0}}"
+        ".gtq{opacity:0}@keyframes gtq{0%%{opacity:0}1%%{opacity:1}99%%{opacity:1}100%%{opacity:0}}@keyframes gtqn{from{opacity:0}}"
         % (".22" if light else ".3", n(Pscan, 3), n(H - hz, 1), n(Pf, 3), n(Pf, 3), halo, ".85" if light else "1",
            done_c, done_c))
     return "".join(out)
@@ -2040,7 +2041,7 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
         out.append(f'<g transform="{tr}" fill="url(#ng)">{doc.uses(title, "bold")}</g>')
     else:
         letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, False)
-        if spec.get("glow") and getattr(doc, "theme", "") != "light":   # a neon glow behind the name, once drawn
+        if spec.get("glow") and getattr(doc, "theme", "") == "dark":    # a neon glow behind the name, once drawn
             doc.defs.append('<filter id="nglow" x="-10%" y="-40%" width="120%" height="180%">'
                             '<feGaussianBlur stdDeviation="9"/></filter>')
             out.append(f'<g class="in" filter="url(#nglow)" opacity="{spec["glow"]}"{_delay(t_name)}>'

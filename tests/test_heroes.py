@@ -68,6 +68,10 @@ class Sample(unittest.TestCase):
                     for name, dur in re.findall(r'animation:(gd\w+|gt\w+|cg\w+) ([\d.]+)s[^;}"]*infinite', text):
                         k = T / float(dur)
                         self.assertAlmostEqual(k, round(k), places=2, msg=(name, dur, T))
+        hero = dict(heroes.SAMPLE, name="Graph", kind="hero")              # a short name leaves the orbit room
+        self.assertIn('class="gtn"', heroes.render(dict(hero, motif=topology), "dark"))
+        self.assertIn('class="gtn"', heroes.render(dict(hero, motif=dict(topology, angles=[90])), "dark"))  # filled in
+        self.assertIn('class="gdr"', sample("card", motif=topology))        # a card is too small: it draws the board
         card = sample("card", motif={"kind": "fractal"})
         self.assertEqual(card.count("<use href=\"#cge"), 4)          # the edges written once: graph, glow, data, depth
 
