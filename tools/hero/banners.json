@@ -631,6 +631,207 @@
    }
   },
   {
+   "name": "graphdone-system",
+   "title": "GraphDone system map",
+   "kind": "diagram",
+   "palette": "graphdone",
+   "backdrop": "grid",
+   "hud": true,
+   "out": "GraphDone/.github:profile/img/system/graphdone-system",
+   "alt": "GraphDone system map: people use the web app, which reaches the shared graph through the GraphQL API; AI agents reach it directly through the MCP server and the agent API (in development). GraphDone-Core is open source (MIT), self-hosted by you or hosted at graphdone.com.",
+   "desc": "How GraphDone fits together, drawn as neon conduits on a grid. People connect to the web app, which goes through the GraphQL API to the shared graph (GraphDone's logo, with HUD rings). AI agents connect to the MCP server and to the agent API, which is dashed because it is in development on Core's dev branch; both reach the shared graph directly, not through GraphQL. These parts are inside GraphDone-Core, which is open source under MIT, and Core is deployed either self-hosted by you or as the hosted app at graphdone.com. Data pulses run along the finished paths.",
+   "motif": {
+    "kind": "diagram",
+    "source": "GraphDone-Core's entry points as they stand: the web app's client talks to the GraphQL server; the MCP server and the agent API (on dev) use the graph service directly. Deployment: self-hosted, or graphdone.com. No store is named.",
+    "colours": {
+     "PEOPLE": [
+      "#4ade80",
+      "#16a34a"
+     ],
+     "AGENT": [
+      "#fbbf24",
+      "#b45309"
+     ],
+     "CORE": [
+      "#38bdf8",
+      "#0284c7"
+     ],
+     "CLOUD": [
+      "#fb923c",
+      "#ea580c"
+     ],
+     "SELF": [
+      "#818cf8",
+      "#4f46e5"
+     ],
+     "GRAPH": [
+      "#818cf8",
+      "#4f46e5"
+     ]
+    },
+    "nodes": [
+     {
+      "id": "people",
+      "label": "People",
+      "icon": "person",
+      "colour": "PEOPLE",
+      "style": "pill",
+      "at": [
+       156,
+       50
+      ]
+     },
+     {
+      "id": "agents",
+      "label": "AI agents",
+      "icon": "agent",
+      "colour": "AGENT",
+      "style": "pill",
+      "at": [
+       509,
+       50
+      ]
+     },
+     {
+      "id": "web",
+      "label": "Web app",
+      "icon": "window",
+      "colour": "CORE",
+      "at": [
+       156,
+       212
+      ],
+      "w": 200
+     },
+     {
+      "id": "mcp",
+      "label": "MCP server",
+      "icon": "chip",
+      "colour": "CORE",
+      "at": [
+       386,
+       212
+      ],
+      "w": 200
+     },
+     {
+      "id": "agentapi",
+      "label": "Agent API",
+      "tag": "In development on dev",
+      "icon": "plug",
+      "colour": "AGENT",
+      "dashed": true,
+      "at": [
+       632,
+       212
+      ],
+      "w": 200
+     },
+     {
+      "id": "gql",
+      "label": "GraphQL API",
+      "icon": "code",
+      "colour": "CORE",
+      "at": [
+       156,
+       318
+      ],
+      "w": 200
+     },
+     {
+      "id": "graph",
+      "label": "Shared graph",
+      "style": "hub",
+      "colour": "GRAPH",
+      "at": [
+       386,
+       380
+      ],
+      "r": 30
+     },
+     {
+      "id": "self",
+      "label": "Self-hosted by you",
+      "icon": "server",
+      "colour": "SELF",
+      "style": "pill",
+      "at": [
+       232,
+       548
+      ]
+     },
+     {
+      "id": "hosted",
+      "label": "graphdone.com · hosted",
+      "icon": "cloud",
+      "colour": "CLOUD",
+      "style": "pill",
+      "at": [
+       568,
+       548
+      ]
+     }
+    ],
+    "groups": [
+     {
+      "id": "core",
+      "label": "GraphDone-Core",
+      "tag": "OPEN SOURCE · MIT",
+      "colour": "CORE",
+      "box": [
+       32,
+       134,
+       772,
+       488
+      ]
+     }
+    ],
+    "edges": [
+     {
+      "from": "people",
+      "to": "web"
+     },
+     {
+      "from": "agents",
+      "to": "mcp"
+     },
+     {
+      "from": "agents",
+      "to": "agentapi"
+     },
+     {
+      "from": "web",
+      "to": "gql"
+     },
+     {
+      "from": "gql",
+      "to": "graph",
+      "side": "left"
+     },
+     {
+      "from": "mcp",
+      "to": "graph"
+     },
+     {
+      "from": "agentapi",
+      "to": "graph",
+      "side": "right",
+      "dashed": true
+     },
+     {
+      "from": "core",
+      "to": "self",
+      "dashed": true
+     },
+     {
+      "from": "core",
+      "to": "hosted",
+      "dashed": true
+     }
+    ]
+   }
+  },
+  {
    "name": "card-tritium",
    "title": "Tritium",
    "kind": "card",

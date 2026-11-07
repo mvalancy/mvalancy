@@ -96,6 +96,28 @@ class Sample(unittest.TestCase):
             self.assertEqual(heroes.problems(text, "hero"), [])
             self.assertIn(f'stroke="{colour}"', text)                    # the spec's own colour for its kind, by theme
 
+    def test_a_diagram_draws_its_nodes_groups_and_edges_still(self):
+        """A diagram is a figure, not a banner: no name or tagline, no intro, nothing that plays once. Solid
+        conduits carry data pulses; a dashed one (a part still in development, or a deployment) carries none."""
+        motif = {"kind": "diagram", "colours": {"CORE": ["#38bdf8", "#0284c7"], "AGENT": ["#fbbf24", "#b45309"]},
+                 "nodes": [{"id": "a", "label": "Agents", "icon": "agent", "colour": "AGENT", "style": "pill", "at": [400, 50]},
+                           {"id": "m", "label": "MCP server", "icon": "chip", "colour": "CORE", "at": [250, 220]},
+                           {"id": "p", "label": "Agent API", "tag": "In development", "icon": "plug", "colour": "AGENT",
+                            "dashed": True, "at": [550, 220]},
+                           {"id": "g", "label": "Shared graph", "style": "hub", "at": [400, 380]},
+                           {"id": "s", "label": "Self-hosted", "icon": "server", "style": "pill", "at": [400, 550]}],
+                 "groups": [{"id": "c", "label": "Core", "tag": "MIT", "colour": "CORE", "box": [40, 130, 760, 480]}],
+                 "edges": [{"from": "a", "to": "m"}, {"from": "a", "to": "p"}, {"from": "m", "to": "g", "side": "left"},
+                           {"from": "p", "to": "g", "side": "right", "dashed": True}, {"from": "c", "to": "s", "dashed": True}]}
+        for theme in ("light", "dark"):
+            text = heroes.render(dict(heroes.SAMPLE, kind="diagram", motif=motif), theme)
+            self.assertEqual(heroes.problems(text, "diagram"), [])
+            self.assertEqual(text.count('class="dgp"'), 3)              # the three solid conduits
+            self.assertEqual(text.count('class="dgl dgd"'), 2)          # the two dashed ones
+            self.assertNotIn("shine", text)                              # no title, so no title animation
+            self.assertEqual(heroes.timed(text), [])                     # nothing plays once and stops
+        self.assertEqual(heroes.THEMES["diagram"], ["light", "dark"])
+
     def test_the_stack_motif_fits_a_hero(self):
         text = sample("hero", motif={"kind": "stack"})
         self.assertEqual(heroes.problems(text, "hero"), [])
@@ -288,6 +310,10 @@ class Rules(unittest.TestCase):
                     self.assertEqual(heroes.timed(text), [])
                     self.assertIn(heroes.REDUCED_MOTION, text)
                     cycles = {float(t) for t in re.findall(r'animation:L\d+ ([\d.]+)s', text)}
+                    if spec.get("kind") == "diagram":                          # a still figure: no intro to loop
+                        self.assertEqual(cycles, set())
+                        self.assertEqual(heroes.drifting(text), [])
+                        continue
                     self.assertEqual(len(cycles), 1, cycles)                  # one cycle for every intro
                     T = cycles.pop()
                     self.assertGreaterEqual(T, heroes.HOLD + heroes.RESET)
