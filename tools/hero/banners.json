@@ -143,7 +143,7 @@
    "tagline": "Relationship management for agents. People and AI agents coordinate through dependencies and outcomes.",
    "facts": [
     "humans + AI agents as peers",
-    "MCP server · GraphQL",
+    "MCP server · GraphQL API",
     "MIT"
    ],
    "motif": {
@@ -151,32 +151,32 @@
     "items": [
      [
       "TASK",
-      "Set up Neo4j database",
+      "Dynamic level of detail",
       "Alice"
      ],
      [
       "TASK",
-      "Configure GraphQL schema",
+      "Carry ports and buses into item wiring",
       "agent"
      ],
      [
       "MILESTONE",
-      "Graph visualization system",
+      "Readable graphs at every zoom",
       "Alice"
      ],
      [
       "TASK",
-      "Implement D3.js force layout",
+      "Organize graphs around their topology",
       "Bob"
      ],
      [
       "TASK",
-      "Add node drag interaction",
+      "Readable card and wire clearances",
       "agent"
      ],
      [
-      "TASK",
-      "Implement authentication",
+      "FEATURE",
+      "Portable graphs through MCP authoring",
       "Charlie"
      ]
     ],
@@ -207,14 +207,14 @@
      5
     ],
     "outcome": "Production-ready graph system",
-    "source": "packages/server/src/scripts/seed.ts: project alpha's work items, their DEPENDS_ON and IS_PART_OF edges, its outcome and its contributors (people and an AI agent)",
+    "source": "GraphDone-Core's current open work: dynamic level of detail (#193, #220), topology organization (#233) and MCP authoring (#217), owned by people and an AI agent",
     "labels": [
-     "Neo4j database",
-     "GraphQL schema",
-     "Graph visualization",
-     "D3 force layout",
-     "Node drag",
-     "Authentication"
+     "Dynamic LOD",
+     "Wire ports + buses",
+     "Readable graphs",
+     "Topology layout",
+     "Card clearances",
+     "MCP authoring"
     ],
     "angles": [
      215,
@@ -225,7 +225,7 @@
      325
     ]
    },
-   "desc": "GraphDone's own seed graph as a live topology: its work items ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour owned by a person or an AI agent and named by a HUD callout, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
+   "desc": "GraphDone's current work as a live topology: work items ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour owned by a person or an AI agent and named by a HUD callout, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
    "glow": ".5",
    "backdrop": "grid",
    "hud": true
@@ -467,32 +467,32 @@
     "items": [
      [
       "TASK",
-      "Set up Neo4j database",
+      "Dynamic level of detail",
       "Alice"
      ],
      [
       "TASK",
-      "Configure GraphQL schema",
+      "Carry ports and buses into item wiring",
       "agent"
      ],
      [
       "MILESTONE",
-      "Graph visualization system",
+      "Readable graphs at every zoom",
       "Alice"
      ],
      [
       "TASK",
-      "Implement D3.js force layout",
+      "Organize graphs around their topology",
       "Bob"
      ],
      [
       "TASK",
-      "Add node drag interaction",
+      "Readable card and wire clearances",
       "agent"
      ],
      [
-      "TASK",
-      "Implement authentication",
+      "FEATURE",
+      "Portable graphs through MCP authoring",
       "Charlie"
      ]
     ],
@@ -523,7 +523,7 @@
      5
     ],
     "outcome": "Production-ready graph system",
-    "source": "packages/server/src/scripts/seed.ts: project alpha's work items, their DEPENDS_ON and IS_PART_OF edges, its outcome and its contributors (people and an AI agent)"
+    "source": "GraphDone-Core's current open work: dynamic level of detail (#193, #220), topology organization (#233) and MCP authoring (#217), owned by people and an AI agent"
    }
   },
   {

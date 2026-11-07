@@ -1292,8 +1292,8 @@ def _tick_path(X, Y, r):
 
 
 def motif_board(doc, data, box, mini, t0):
-    """GraphDone: work coordinated through dependencies and outcomes. A list of work items from GraphDone's own seed
-    graph, each with its type, title and owner (a person, or an AI agent as a peer); their dependencies drawn as an
+    """GraphDone: work coordinated through dependencies and outcomes. A list of GraphDone's work items (from the
+    spec), each with its type, title and owner (a person, or an AI agent as a peer); their dependencies drawn as an
     arc diagram down the left; every item wired to the outcome, which is GraphDone's logo. The items complete in
     dependency order: the progress fills, a tick lands, the row lights, its dependency arcs and its wire to the
     outcome light up and one of the logo's work nodes comes on. With every item done the outcome is reached and work
@@ -1464,7 +1464,7 @@ GD_TYPES_LIGHT = {"TASK": "#16a34a", "FEATURE": "#0284c7", "BUG": "#dc2626", "MI
 
 
 def motif_topology(doc, data, box, mini, t0):
-    """GraphDone as a live graph in orbit: the work items of GraphDone's own seed graph ride an orbit round their
+    """GraphDone as a live graph in orbit: GraphDone's work items (from the spec) ride an orbit round their
     outcome (GraphDone's logo), each a node in its type's colour, owned by a person (their initial) or an AI agent
     (a hexagon with a robot), with a HUD callout naming it. Their dependencies run along the orbit and every item is
     wired to the outcome by a neon spoke. Behind it a perspective grid floor and two drifting layers of distant graph
