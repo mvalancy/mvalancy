@@ -53,18 +53,19 @@ class Sample(unittest.TestCase):
                     text = sample(size, motif=dict(data, kind=kind))
                     self.assertEqual(heroes.problems(text, size), [])
 
-    def test_the_board_and_fractal_motifs_loop_in_step(self):
-        """GraphDone's board and CodeGraph's fractal: within budget at every size, and every ambient animation's period
-        divides the loop's cycle, so a frame and the frame a cycle later are the same."""
+    def test_the_board_topology_and_fractal_motifs_loop_in_step(self):
+        """GraphDone's board and topology and CodeGraph's fractal: within budget at every size and theme, and every
+        ambient animation's period divides the loop's cycle, so a frame and the frame a cycle later are the same."""
         board = {"kind": "board", "items": [["TASK", "Set up a database", "Alice"], ["TASK", "Write a schema", "agent"],
                                             ["MILESTONE", "Ship it", "Bob"]], "deps": [[0, 1], [1, 2]], "outcome": "Done"}
-        for motif in (board, {"kind": "fractal"}):
-            for kind in ("hero", "spot", "card"):
-                with self.subTest(motif=motif["kind"], kind=kind):
-                    text = sample(kind, motif=motif)
+        topology = dict(board, kind="topology", labels=["Database", "Schema", "Ship"], angles=[215, 325, 90])
+        for motif in (board, topology, {"kind": "fractal"}):
+            for kind, theme in (("hero", "dark"), ("hero", "light"), ("spot", "dark"), ("card", "dark")):
+                with self.subTest(motif=motif["kind"], kind=kind, theme=theme):
+                    text = sample(kind, theme, motif=motif)
                     self.assertEqual(heroes.problems(text, kind), [])
                     T = float(re.search(r'animation:L\d+ ([\d.]+)s', text).group(1))
-                    for name, dur in re.findall(r'animation:(gd\w+|cg\w+) ([\d.]+)s[^;}"]*infinite', text):
+                    for name, dur in re.findall(r'animation:(gd\w+|gt\w+|cg\w+) ([\d.]+)s[^;}"]*infinite', text):
                         k = T / float(dur)
                         self.assertAlmostEqual(k, round(k), places=2, msg=(name, dur, T))
         card = sample("card", motif={"kind": "fractal"})
