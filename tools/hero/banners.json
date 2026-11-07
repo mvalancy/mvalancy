@@ -153,37 +153,37 @@
       "TASK",
       "Carry ports and buses into item wiring",
       "agent",
-      "TASK · AI AGENT"
+      "TASK · #220"
      ],
      [
       "TASK",
       "Portable graphs through MCP authoring",
       "icon:person",
-      "TASK · HUMAN"
+      "TASK · #217"
      ],
      [
       "MILESTONE",
       "Dynamic level of detail",
       "icon:person",
-      "MILESTONE · HUMAN"
+      "MILESTONE · #193"
      ],
      [
       "TASK",
       "Organize graphs around their topology",
       "icon:person",
-      "TASK · HUMAN"
+      "TASK · #233"
      ],
      [
       "TASK",
-      "Readable card and wire clearances",
+      "Exact-SHA releases and verified deployment",
       "agent",
-      "TASK · AI AGENT"
+      "TASK · #190"
      ],
      [
       "BUG",
       "Fresh installs fail at clone",
       "icon:person",
-      "BUG · HUMAN"
+      "BUG · #243"
      ]
     ],
     "deps": [
@@ -194,10 +194,6 @@
      [
       1,
       2
-     ],
-     [
-      3,
-      4
      ]
     ],
     "order": [
@@ -209,13 +205,13 @@
      5
     ],
     "outcome": "Next GraphDone release",
-    "source": "GraphDone-Core's open issues: dynamic level of detail (#193) with its wiring (#220) and MCP authoring (#217) steps, topology organization (#233) and the installer fix (#243); people and an AI agent as owners",
+    "source": "GraphDone-Core's open issues: dynamic level of detail (#193) with its wiring (#220) and MCP authoring (#217) steps, topology organization (#233), exact-SHA releases (#190) and the installer fix (#243). The issues are unassigned: the person and AI-agent owners are illustrative, as GraphDone work is owned by either",
     "labels": [
      "Wire ports + buses",
      "MCP authoring",
      "Dynamic LOD",
      "Topology layout",
-     "Card clearances",
+     "Verified releases",
      "Installer fix"
     ],
     "angles": [
@@ -227,7 +223,7 @@
      325
     ]
    },
-   "desc": "GraphDone's current work as a live topology: work items from its open issues ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour owned by a person or an AI agent and named by a HUD callout, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
+   "desc": "GraphDone's current work as a live topology: work items from its open issues ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour with an illustrative owner (a person or an AI agent) and named by a HUD callout with its issue number, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
    "glow": ".5",
    "backdrop": "grid",
    "hud": true
@@ -475,27 +471,27 @@
      [
       "TASK",
       "Portable graphs through MCP authoring",
-      "Human"
+      "icon:person"
      ],
      [
       "MILESTONE",
       "Dynamic level of detail",
-      "Human"
+      "icon:person"
      ],
      [
       "TASK",
       "Organize graphs around their topology",
-      "Human"
+      "icon:person"
      ],
      [
       "TASK",
-      "Readable card and wire clearances",
+      "Exact-SHA releases and verified deployment",
       "agent"
      ],
      [
       "BUG",
       "Fresh installs fail at clone",
-      "Human"
+      "icon:person"
      ]
     ],
     "deps": [
@@ -506,10 +502,6 @@
      [
       1,
       2
-     ],
-     [
-      3,
-      4
      ]
     ],
     "order": [
@@ -521,7 +513,7 @@
      5
     ],
     "outcome": "Next GraphDone release",
-    "source": "GraphDone-Core's open issues: dynamic level of detail (#193) with its wiring (#220) and MCP authoring (#217) steps, topology organization (#233) and the installer fix (#243); people and an AI agent as owners"
+    "source": "GraphDone-Core's open issues: dynamic level of detail (#193) with its wiring (#220) and MCP authoring (#217) steps, topology organization (#233), exact-SHA releases (#190) and the installer fix (#243). The issues are unassigned: the person and AI-agent owners are illustrative, as GraphDone work is owned by either"
    }
   },
   {
@@ -541,7 +533,7 @@
     "self-host or graphdone.com"
    ],
    "alt": "GraphDone: one graph of work for people and AI agents. The open-source core (web app, GraphQL API, MCP server), the hosted app at graphdone.com, AI agents and people connect round shared outcomes.",
-   "desc": "GraphDone as one system: the open-source core's web app, GraphQL API and MCP server, the hosted app at graphdone.com built on that core, and the AI agents and people who work in the same graph ride an orbit round GraphDone's logo, each named by a HUD callout, over a perspective grid and drifting layers of distant graph. The parts come online in turn round the ring: each node fills, its links and its neon spoke to the centre light and data pulses flow inward; when all six are live the centre locks.",
+   "desc": "GraphDone as one system: the open-source core's web app, GraphQL API and MCP server, the hosted app at graphdone.com built on that core, and the AI agents and people who work in the same graph ride an orbit round GraphDone's logo, each named by a HUD callout, over a perspective grid and drifting layers of distant graph. The parts come online in turn round the ring: each node fills, its links (people to the web app to the GraphQL API, agents to the MCP server) and its neon spoke to the centre light and data pulses flow inward; when all six are live the centre locks.",
    "motif": {
     "kind": "topology",
     "items": [
@@ -610,36 +602,24 @@
     ],
     "deps": [
      [
+      5,
+      0
+     ],
+     [
       0,
       1
      ],
      [
-      1,
-      2
-     ],
-     [
-      2,
-      4
-     ],
-     [
-      0,
-      5
-     ],
-     [
       4,
-      3
-     ],
-     [
-      5,
-      3
+      2
      ]
     ],
     "order": [
+     5,
      0,
      1,
-     2,
      4,
-     5,
+     2,
      3
     ],
     "outcome": "Shared outcomes in one graph",

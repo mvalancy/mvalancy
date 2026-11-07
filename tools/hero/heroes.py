@@ -911,6 +911,8 @@ def motif_network(doc, data, box, mini, t0):
 
 def _icon(kind, X, Y, r):
     """Small line icons drawn round (X, Y) at radius r, in the background colour on an accent node."""
+    if kind not in ("chip", "gear", "robot", "code", "brain", "cloud", "person", "window"):
+        raise ValueError(f"no icon {kind!r}")
     st = f'fill="none" stroke="var(--bg)" stroke-width="{n(r * 0.16)}" stroke-linecap="round" stroke-linejoin="round"'
     a = r * 0.5
     if kind == "chip":
@@ -1346,6 +1348,8 @@ def motif_board(doc, data, box, mini, t0):
             hexp = [(ax + ar * math.cos(math.pi / 6 + k * math.pi / 3), cy + ar * math.sin(math.pi / 6 + k * math.pi / 3))
                     for k in range(6)]
             body.append(f'<path d="{poly(hexp, True)}" fill="var(--a3)"/>{_icon("robot", ax, cy + ar * .06, ar * .95)}')
+        elif who.startswith("icon:"):                    # an owner drawn as an icon (a person, a part)
+            body.append(f'<circle cx="{n(ax)}" cy="{n(cy)}" r="{n(ar)}" fill="var(--a1)"/>{_icon(who[5:], ax, cy, ar * .95)}')
         else:                                            # a person: their initial
             fs = ar * 1.15
             body.append(f'<circle cx="{n(ax)}" cy="{n(cy)}" r="{n(ar)}" fill="var(--a1)"/>'
@@ -1471,8 +1475,8 @@ GD_TYPES_LIGHT = {"TASK": "#16a34a", "FEATURE": "#0284c7", "BUG": "#dc2626", "MI
 
 def motif_topology(doc, data, box, mini, t0):
     """GraphDone as a live graph in orbit: GraphDone's work items (from the spec) ride an orbit round their
-    outcome (GraphDone's logo), each a node in its type's colour, owned by a person (their initial) or an AI agent
-    (a hexagon with a robot), with a HUD callout naming it. Their dependencies run along the orbit and every item is
+    outcome (GraphDone's logo), each a node in its type's colour, owned by a person (their initial or an icon) or an
+    AI agent (a hexagon with a robot), or a part of a system drawn as an icon, with a HUD callout naming it. Their dependencies run along the orbit and every item is
     wired to the outcome by a neon spoke. Behind it a perspective grid floor and two drifting layers of distant graph
     give it depth. The items complete in dependency order: a ring closes round the node, its dependency arcs and its
     spoke light and data pulses start to flow into the outcome, and one of the logo's work nodes comes on. With every
