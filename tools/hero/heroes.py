@@ -17,6 +17,8 @@ files by ``extract_cad.py``, or built by the project's own CadQuery code and pos
 board read by ``--extract pcb``, its catalogue, its constants). A CAD motif may draw one group at several poses and play them back as a ``scan`` (a
 turret that sweeps, nods and holds); the rest pose is the still frame. Each banner is written twice, ``<out>-light.svg`` and
 ``<out>-dark.svg``, for a ``<picture>`` element whose ``prefers-color-scheme`` sources follow GitHub's theme.
+A ``diagram`` (800 x 600, light and dark) is a figure for a README section rather than a banner: no name or tagline,
+just its motif (``motif_diagram``, a system map whose nodes and links the spec lists), still apart from data pulses.
 
 Rendering needs only the Python standard library and is deterministic: the same inputs give the same bytes. Text is
 drawn from vendored glyph outlines (``glyphs.json``, Space Grotesk, OFL-1.1), so it looks the same everywhere and
@@ -42,15 +44,15 @@ from xml.sax.saxutils import escape
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 THIS_REPO = "mvalancy/mvalancy"
-BUDGET = {"hero": 150_000, "spot": 150_000, "card": 30_000}
+BUDGET = {"hero": 150_000, "spot": 150_000, "card": 30_000, "diagram": 150_000}
 REDUCED_MOTION = "@media (prefers-reduced-motion:reduce){*{animation:none!important}}"
-SIZES = {"hero": (1200, 440), "spot": (800, 400), "card": (600, 300)}
+SIZES = {"hero": (1200, 440), "spot": (800, 400), "card": (600, 300), "diagram": (800, 600)}
 # Colours are baked into each file. WebKit (every iOS browser) draws an SVG in an <img> with the light scheme whatever
 # the page is, so a scheme switched inside the SVG never fires there. A hero is not a link, so it gets a light and a
 # dark file for a <picture>. Cards and spotlights are links, and GitHub cannot theme a linked image (its sanitiser
 # takes the <img> out of a <picture> inside <a>, and an <a> inside <picture> hides the <source>), so they are drawn
 # dark only: one file that reads on a light page and a dark one alike.
-THEMES = {"hero": ["light", "dark"], "spot": ["dark"], "card": ["dark"]}
+THEMES = {"hero": ["light", "dark"], "spot": ["dark"], "card": ["dark"], "diagram": ["light", "dark"]}
 
 # ------------------------------------------------------------------------------------------------ palettes
 
@@ -911,7 +913,7 @@ def motif_network(doc, data, box, mini, t0):
 
 def _icon(kind, X, Y, r):
     """Small line icons drawn round (X, Y) at radius r, in the background colour on an accent node."""
-    if kind not in ("chip", "gear", "robot", "code", "brain", "cloud", "person", "window"):
+    if kind not in ("chip", "gear", "robot", "code", "brain", "cloud", "person", "window", "server", "plug"):
         raise ValueError(f"no icon {kind!r}")
     st = f'fill="none" stroke="var(--bg)" stroke-width="{n(r * 0.16)}" stroke-linecap="round" stroke-linejoin="round"'
     a = r * 0.5
@@ -939,6 +941,13 @@ def _icon(kind, X, Y, r):
     if kind == "person":
         return (f'<circle cx="{n(X)}" cy="{n(Y - a * .4)}" r="{n(a * .42)}" {st}/>'
                 f'<path d="M{n(X - a * .8)} {n(Y + a * .85)}a{n(a * .8)} {n(a * .75)} 0 0 1 {n(a * 1.6)} 0" {st}/>')
+    if kind == "server":                                 # a rack: two units, each with a status light
+        return "".join(f'<rect x="{n(X - a)}" y="{n(Y + dy - a * .38)}" width="{n(2 * a)}" height="{n(a * .76)}" '
+                       f'rx="{n(a * .15)}" {st}/><path d="M{n(X - a * .55)} {n(Y + dy)}h.01" {st}/>' for dy in (-a * .48, a * .48))
+    if kind == "plug":                                   # a connector: two prongs, a body and its lead
+        return (f'<path d="M{n(X - a * .35)} {n(Y - a)}v{n(a * .45)}M{n(X + a * .35)} {n(Y - a)}v{n(a * .45)}'
+                f'M{n(X - a * .7)} {n(Y - a * .55)}h{n(a * 1.4)}v{n(a * .45)}a{n(a * .7)} {n(a * .7)} 0 0 1 {n(-a * 1.4)} 0z'
+                f'M{n(X)} {n(Y + a * .6)}v{n(a * .45)}" {st}/>')
     # window
     return (f'<rect x="{n(X - a)}" y="{n(Y - a * .8)}" width="{n(2 * a)}" height="{n(a * 1.6)}" rx="{n(a * .2)}" {st}/>'
             f'<path d="M{n(X - a)} {n(Y - a * .3)}h{n(2 * a)}" {st}/>')
@@ -1751,6 +1760,184 @@ def motif_topology(doc, data, box, mini, t0):
     return "".join(out)
 
 
+def motif_diagram(doc, data, box, mini, t0):
+    """A system map in the banner's language: ``nodes`` (cards, pills, or a hub drawn as GraphDone's logo, each with
+    a line icon in its colour), ``groups`` (a bracketed box round some nodes, with a label and a tag) and ``edges``
+    (neon conduits from one node, or from a group's lower edge, to another, routed at right angles with rounded
+    corners and an arrowhead). Positions are the spec's, in canvas units: the spec says what connects to what and the
+    motif only draws it. A ``dashed`` node or edge is not finished yet (or, for an edge, a deployment rather than a
+    data path) and carries no data pulses. It is a still picture: the only motion is data pulses running along the
+    solid conduits and the hub's HUD rings turning, so under reduced motion it reads the same, without the pulses.
+    An edge leaves the bottom of its source and enters its target's ``side``: ``top`` (the default; it turns at
+    ``via``, a y, else half way, and lands at ``x`` if given, else the target's middle) or ``left``/``right`` (it runs
+    down, then across). An edge from a group leaves the group's lower edge straight down into a target's top. A
+    node's ``colour`` is a key of ``colours`` or a literal colour; the hub keeps the logo's own colours. Anything
+    else in a spec (an unknown id, colour key, side or style) is an error, not a guess."""
+    light = getattr(doc, "theme", "dark") != "dark"
+    cols = {k: v[1 if light else 0] for k, v in data.get("colours", {}).items()}
+
+    def col(key):
+        if key is None or key.startswith(("#", "var(")):
+            return key or "var(--a1)"
+        if key not in cols:
+            raise ValueError(f"diagram: no colour {key!r} in colours")
+        return cols[key]
+    cap = glyphs()["cap"] / glyphs()["upm"]
+    ls, ts = data.get("label_size", 21), data.get("tag_size", 16)
+    nodes, boxes, out = {}, {}, []
+    glows = {}
+
+    def glow(c):
+        if c not in glows:
+            glows[c] = doc.uid("dgz")
+            doc.defs.append(f'<radialGradient id="{glows[c]}"><stop offset=".25" stop-color="{c}" stop-opacity=".5"/>'
+                            f'<stop offset="1" stop-color="{c}" stop-opacity="0"/></radialGradient>')
+        return glows[c]
+    for nd in data["nodes"]:                             # measure every node first: edges need their boxes
+        if nd.get("style", "card") not in ("card", "pill", "hub"):
+            raise ValueError(f"diagram: node {nd['id']!r} has no style {nd['style']!r}")
+        X, Y = nd["at"]
+        if nd.get("style") == "hub":
+            R = nd.get("r", 30)
+            boxes[nd["id"]] = (X - R - 8, Y - R - 8, X + R + 8, Y + R + 8)
+        else:
+            tag = nd.get("tag", "")
+            pill = nd.get("style") == "pill"
+            h = 46 if pill else (66 if tag else 60)
+            wl = max(doc.width(nd["label"], "medium", ls), doc.width(tag, "medium", ts) if tag else 0)
+            w = max(nd.get("w", 0), 64 + wl + 18)
+            boxes[nd["id"]] = (X - w / 2, Y - h / 2, X + w / 2, Y + h / 2)
+        nodes[nd["id"]] = nd
+    for g in data.get("groups", []):
+        boxes[g["id"]] = tuple(g["box"])
+    # ---- groups: a tinted box with HUD corner brackets, its label and tag in the lower left
+    for g in data.get("groups", []):
+        x0, y0, x1, y1 = g["box"]
+        c = col(g.get("colour"))
+        L = 22
+        out.append(f'<rect x="{n(x0)}" y="{n(y0)}" width="{n(x1 - x0)}" height="{n(y1 - y0)}" rx="16" fill="{c}" '
+                   f'fill-opacity="{".05" if light else ".06"}" stroke="{c}" stroke-opacity=".45" stroke-width="1.2"/>'
+                   f'<path d="M{n(x0)} {n(y0 + L)}V{n(y0)}H{n(x0 + L)}M{n(x1 - L)} {n(y0)}H{n(x1)}V{n(y0 + L)}'
+                   f'M{n(x1)} {n(y1 - L)}V{n(y1)}H{n(x1 - L)}M{n(x0 + L)} {n(y1)}H{n(x0)}V{n(y1 - L)}" fill="none" '
+                   f'stroke="{c}" stroke-width="2.6" stroke-linecap="square"/>')
+        gx, gy = x0 + 22, y1 - 22
+        out.append(doc.text(g["label"], "bold", 22, gx, gy - 24, fill="var(--ink)")
+                   + doc.text(g.get("tag", ""), "medium", ts, gx, gy, fill=c, track=130))
+    # ---- edges: right-angled conduits with rounded corners, a glow under a gradient line, an arrowhead
+    pulses, P = [], data.get("pulse", 2.4)
+    gcol = {g["id"]: g.get("colour") for g in data.get("groups", [])}
+    for k, e in enumerate(data.get("edges", [])):
+        for end in ("from", "to"):
+            if e[end] not in boxes:
+                raise ValueError(f"diagram: edge {end} {e[end]!r} is no node or group")
+        a, b = boxes[e["from"]], boxes[e["to"]]
+        side = e.get("side", "top")                      # where the conduit enters its target
+        if side not in ("top", "left", "right") or (e["from"] in gcol and side != "top"):
+            raise ValueError(f"diagram: edge {e['from']}->{e['to']} cannot enter its target's {side!r}")
+        if side == "top":
+            x1, y1 = e.get("x", (b[0] + b[2]) / 2), b[1]
+        else:
+            x1, y1 = (b[0] if side == "left" else b[2]), (b[1] + b[3]) / 2
+        x0, y0 = (x1 if e["from"] not in nodes else (a[0] + a[2]) / 2), a[3]
+        if side == "top":
+            ym = e.get("via", (y0 + y1) / 2)
+            pts = [(x0, y0), (x0, ym), (x1, ym), (x1, y1)] if abs(x1 - x0) > .5 else [(x0, y0), (x1, y1)]
+        else:
+            pts = [(x0, y0), (x0, y1), (x1, y1)]
+        r = 14
+        d = f"M{n(pts[0][0])} {n(pts[0][1])}"
+        for i in range(1, len(pts) - 1):                 # a quarter-circle at each corner
+            (px, py), (qx, qy), (sx, sy) = pts[i - 1], pts[i], pts[i + 1]
+            u = (math.copysign(1, qx - px) if qx != px else 0, math.copysign(1, qy - py) if qy != py else 0)
+            v = (math.copysign(1, sx - qx) if sx != qx else 0, math.copysign(1, sy - qy) if sy != qy else 0)
+            rr = min(r, math.dist((px, py), (qx, qy)) / 2, math.dist((qx, qy), (sx, sy)) / 2)
+            d += f"L{n(qx - u[0] * rr)} {n(qy - u[1] * rr)}Q{n(qx)} {n(qy)} {n(qx + v[0] * rr)} {n(qy + v[1] * rr)}"
+        ex, ey = pts[-1]
+        fx, fy = pts[-2]
+        L = math.dist((fx, fy), (ex, ey)) or 1
+        ux, uy = (ex - fx) / L, (ey - fy) / L
+        tip = (ex - ux * 3, ey - uy * 3)
+        d += f"L{n(tip[0] - ux * 9)} {n(tip[1] - uy * 9)}"
+        ca = col(nodes[e["from"]].get("colour") if e["from"] in nodes else gcol[e["from"]])
+        cb = col(nodes[e["to"]].get("colour") if e["to"] in nodes else gcol[e["to"]])
+        gid = doc.uid("dgs")
+        doc.defs.append(f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{n(x0)}" y1="{n(y0)}" '
+                        f'x2="{n(ex)}" y2="{n(ey)}"><stop offset="0" stop-color="{ca}"/>'
+                        f'<stop offset="1" stop-color="{cb}"/></linearGradient>')
+        dash = e.get("dashed")
+        head = (f"M{n(tip[0] - ux * 11 - uy * 6)} {n(tip[1] - uy * 11 + ux * 6)}L{n(tip[0])} {n(tip[1])}"
+                f"L{n(tip[0] - ux * 11 + uy * 6)} {n(tip[1] - uy * 11 - ux * 6)}z")
+        out.append((f'<path d="{d}" stroke="url(#{gid})" class="dgg"/>' if not dash else "")
+                   + f'<path d="{d}" stroke="url(#{gid})" class="dgl{" dgd" if dash else ""}"/>'
+                   + f'<path d="{head}" fill="{cb}"/>')
+        if not dash:
+            pulses.append(f'<path d="{d}" pathLength="1" class="dgp" style="animation-delay:-{n(P * (k % 3) / 3, 2)}s"/>')
+    out += pulses
+    # ---- nodes
+    for nd in data["nodes"]:
+        X, Y = nd["at"]
+        c = col(nd.get("colour"))
+        x0, y0, x1, y1 = boxes[nd["id"]]
+        if nd.get("style") == "hub":                     # GraphDone's logo, with HUD rings turning round it
+            R = nd.get("r", 30)
+            k = R / 48
+            Lg = lambda u, v: (X + (u - 50) * k, Y + (v - 50) * k)
+            spk = "".join(f"M{n(Lg(u, v)[0])} {n(Lg(u, v)[1])}L{n(X)} {n(Y)}" for u, v, _, _ in GD_LOGO)
+            out.append(f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(R * 2.4)}" fill="url(#{glow("#6366f1")})" class="dgh"/>'
+                       f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(R + 12)}" pathLength="360" class="dgr1"/>'
+                       f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(R + 19)}" pathLength="120" class="dgr2"/>'
+                       f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(R)}" fill="#4f46e5"/>'
+                       f'<path d="{spk}" fill="none" stroke="#e5e7eb" stroke-opacity=".55" stroke-linecap="round" '
+                       f'stroke-width="{n(max(1.2, 2 * k), 1)}"/>'
+                       + "".join(f'<circle cx="{n(Lg(u, v)[0])}" cy="{n(Lg(u, v)[1])}" r="{n(r * k * 1.25)}" fill="{cc}"/>'
+                                 for u, v, r, cc in GD_LOGO)
+                       + f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(7 * k * 1.2)}" fill="#fff" stroke="#4f46e5" '
+                       f'stroke-width="{n(2 * k)}"/>')
+            lw = doc.width(nd["label"], "medium", ls)
+            out.append(f'<rect x="{n(X - lw / 2 - 8)}" y="{n(Y + R + 22)}" width="{n(lw + 16)}" height="{n(ls * cap + 14)}" '
+                       f'rx="4" class="dgpl"/>' + doc.text(nd["label"], "medium", ls, X - lw / 2, Y + R + 29 + ls * cap,
+                                                         fill="var(--ink)"))
+            continue
+        pill = nd.get("style") == "pill"
+        w, h = x1 - x0, y1 - y0
+        dash = ' stroke-dasharray="7 5"' if nd.get("dashed") else ""
+        out.append(f'<ellipse cx="{n(X)}" cy="{n(Y)}" rx="{n(w * .62)}" ry="{n(h * 1.05)}" fill="url(#{glow(c)})" '
+                   f'opacity="{".45" if light else ".6"}"/>'
+                   f'<rect x="{n(x0)}" y="{n(y0)}" width="{n(w)}" height="{n(h)}" rx="{n(h / 2 if pill else 10)}" '
+                   f'fill="var(--bg)" fill-opacity=".9" stroke="{c}" stroke-width="1.8"{dash}/>')
+        ix, ir = x0 + (h / 2 if pill else 32), (14 if pill else 17)
+        if nd.get("icon") == "agent":                    # an AI agent: GraphDone's hexagon with a robot
+            hexp = [(ix + ir * 1.1 * math.cos(math.pi / 6 + q * math.pi / 3),
+                     Y + ir * 1.1 * math.sin(math.pi / 6 + q * math.pi / 3)) for q in range(6)]
+            out.append(f'<path d="{poly(hexp, True)}" fill="{c}"/>' + _icon("robot", ix, Y + ir * .06, ir))
+        else:
+            out.append(f'<circle cx="{n(ix)}" cy="{n(Y)}" r="{n(ir)}" fill="{c}"/>' + _icon(nd["icon"], ix, Y, ir))
+        tx = ix + ir + 14
+        tag = nd.get("tag")
+        if tag:
+            out.append(doc.text(nd["label"], "medium", ls, tx, Y - 3, fill="var(--ink)")
+                       + doc.text(tag, "medium", ts, tx, Y + 6 + ts * cap + 2, fill=c))
+        else:
+            out.append(doc.text(nd["label"], "medium", ls, tx, Y + ls * cap / 2, fill="var(--ink)"))
+    P1 = 30.0
+    doc.periods.update(dgp=P, dgr1=P1, dgr2=P1, dgh=6.0)
+    doc.css.append(
+        ".dgg{fill:none;stroke-width:10;stroke-linecap:round;stroke-linejoin:round;stroke-opacity:%s}"
+        ".dgl{fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}"
+        ".dgd{stroke-dasharray:7 6;stroke-linecap:butt;stroke-opacity:.85}"
+        ".dgp{fill:none;stroke:var(--edge);stroke-width:4.5;stroke-linecap:round;stroke-dasharray:.05 .95;opacity:0;"
+        "animation:dgp %ss linear infinite}@keyframes dgp{0%%{stroke-dashoffset:1;opacity:.9}100%%{stroke-dashoffset:0;opacity:.9}}"
+        ".dgh{opacity:%s;transform-box:fill-box;transform-origin:50%% 50%%;animation:dgh 6s ease-in-out infinite}"
+        "@keyframes dgh{50%%{opacity:%s;transform:scale(1.08)}}"
+        ".dgr1{fill:none;stroke:var(--a1);stroke-width:1.5;stroke-dasharray:1.5 4.5;stroke-opacity:.8;transform-box:fill-box;"
+        "transform-origin:50%% 50%%;animation:dgr1 30s linear infinite}@keyframes dgr1{to{transform:rotate(90deg)}}"
+        ".dgr2{fill:none;stroke:var(--a4);stroke-width:2;stroke-dasharray:24 6 4 6;stroke-opacity:.65;transform-box:fill-box;"
+        "transform-origin:50%% 50%%;animation:dgr2 30s linear infinite}@keyframes dgr2{to{transform:rotate(-120deg)}}"
+        ".dgpl{fill:var(--bg);fill-opacity:.7}"
+        % (".14" if light else ".2", n(P, 3), ".5" if light else ".75", ".8" if light else "1"))
+    return "".join(out)
+
+
 def _fractal(rnd, cx, cy, R, branch, radii):
     """A radial code graph: a root, its modules, their files, their symbols, each level fanned out in its parent's
     sector, with a little jitter. Returns the levels of nodes [(x, y, angle, sector, branch)] and the edges of each
@@ -1892,7 +2079,8 @@ MOTIFS = {"cad": motif_cad, "stack": motif_stack, "ops": motif_ops, "catalog": m
           "circuit": motif_circuit, "chart": motif_chart, "dial": motif_dial, "slides": motif_slides,
           "linkage": motif_linkage, "wave": motif_wave, "crystal": motif_crystal, "radar": motif_radar,
           "fight": motif_fight, "network": motif_network, "pcb": motif_pcb,
-          "board": motif_board, "topology": motif_topology, "fractal": motif_fractal}
+          "board": motif_board, "topology": motif_topology, "fractal": motif_fractal,
+          "diagram": motif_diagram}
 
 
 def motif_data(spec: dict) -> dict:
@@ -2465,6 +2653,8 @@ def render(spec: dict, theme: str) -> str:
     if mini:
         body_svg, sketch_css, t_name, box = _card_text(doc, spec, title, W, H, adv, cap)
         body.append(body_svg)
+    elif kind == "diagram":                               # a figure: no name or tagline, the motif fills the canvas
+        sketch_css, t_name, box = "", 0.0, (0, 0, W, H)
     else:
         body_svg, sketch_css, t_name, box = _hero_text(doc, spec, title, kind, W, H, adv, cap)
         body.append(body_svg)
@@ -2473,13 +2663,13 @@ def render(spec: dict, theme: str) -> str:
 
     label = spec.get("alt") or f"{title}: {spec.get('tagline', '')}".strip(": ")
     # the shine sweeps the drawn title once, so the loop gives it a pass in every cycle (off the banner either side)
-    css = sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 1.76s %ss ease-in-out both}"
+    css = ("" if kind == "diagram" else sketch_css + (".sh{opacity:.35;transform:translateX(-400px) skewX(-20deg);animation:shine 1.76s %ss ease-in-out both}"
            "@keyframes shine{0%%{transform:translateX(-200px) skewX(-20deg)}100%%{transform:translateX(%spx) skewX(-20deg)}}"
            ".ul{transform-box:fill-box;transform-origin:0 0;animation:grow .9s %ss ease-out both}"
            "@keyframes grow{from{transform:scaleX(0)}}"
            ".in{animation:fade .7s ease-out both}@keyframes fade{from{opacity:0;transform:translateY(6px)}}"
            ".cbg{fill:var(--bg2);stroke:var(--line)}.cpv{fill:none;stroke:var(--a1);stroke-dasharray:4 3}"
-           % (n(t_name + 0.6, 2), n(W + 400), n(t_name * 0.5, 2))) + "".join(dict.fromkeys(doc.css))
+           % (n(t_name + 0.6, 2), n(W + 400), n(t_name * 0.5, 2)))) + "".join(dict.fromkeys(doc.css))
     if theme == "light":
         css = css.replace(".sh{opacity:.35", ".sh{opacity:.55")
     bg = (f'<linearGradient id="bgg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{pal["bg"]}"/>'
