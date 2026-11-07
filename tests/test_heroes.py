@@ -7,6 +7,7 @@ rendering is deterministic; and every banner committed in this repository is exa
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import unittest
 import xml.etree.ElementTree as ET
@@ -74,6 +75,26 @@ class Sample(unittest.TestCase):
         self.assertIn('class="gdr"', sample("card", motif=topology))        # a card is too small: it draws the board
         card = sample("card", motif={"kind": "fractal"})
         self.assertEqual(card.count("<use href=\"#cge"), 4)          # the edges written once: graph, glow, data, depth
+
+    def test_graphdone_banners_make_no_database_claim(self):
+        """GraphDone's hosted app stores its graph in SQLite and self-hosted Core is moving there too, so no GraphDone
+        banner names a graph database."""
+        for spec in heroes.banners():
+            if spec.get("palette") == "graphdone":
+                with self.subTest(banner=spec["name"]):
+                    self.assertNotRegex(json.dumps(spec, ensure_ascii=False).lower(), "neo4j|cypher")
+
+    def test_a_system_banner_draws_its_parts_with_icons_and_its_own_colours(self):
+        motif = {"kind": "topology", "items": [["CORE", "Web app", "icon:window", "OPEN CORE"],
+                                               ["CLOUD", "Hosted", "icon:cloud", "HOSTED"],
+                                               ["PEOPLE", "People", "icon:person", "PEERS"]],
+                 "colours": {"CORE": ["#38bdf8", "#0284c7"], "CLOUD": ["#fb923c", "#ea580c"],
+                             "PEOPLE": ["#4ade80", "#16a34a"]},
+                 "deps": [[0, 1]], "outcome": "Outcomes", "readout": ["SYSTEM", "LIVE"]}
+        for theme, colour in (("dark", "#fb923c"), ("light", "#ea580c")):
+            text = heroes.render(dict(heroes.SAMPLE, name="Graph", kind="hero", motif=motif), theme)
+            self.assertEqual(heroes.problems(text, "hero"), [])
+            self.assertIn(f'stroke="{colour}"', text)                    # the spec's own colour for its kind, by theme
 
     def test_the_stack_motif_fits_a_hero(self):
         text = sample("hero", motif={"kind": "stack"})
