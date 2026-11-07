@@ -931,6 +931,12 @@ def _icon(kind, X, Y, r):
         E = [(0, 2), (0, 3), (1, 3), (1, 4), (2, 5), (3, 5), (4, 5)]
         return (f'<path d="{"".join(f"M{n(P[i][0])} {n(P[i][1])}L{n(P[j][0])} {n(P[j][1])}" for i, j in E)}" {st}/>'
                 + "".join(f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(a * .2)}" fill="var(--bg)"/>' for px, py in P))
+    if kind == "cloud":
+        return (f'<path d="M{n(X - a * .95)} {n(Y + a * .55)}h{n(a * 1.9)}a{n(a * .5)} {n(a * .5)} 0 0 0 {n(-a * .1)}-{n(a)}'
+                f'a{n(a * .7)} {n(a * .7)} 0 0 0 {n(-a * 1.25)}-{n(a * .3)}a{n(a * .5)} {n(a * .5)} 0 0 0 {n(-a * .55)} {n(a * 1.3)}z" {st}/>')
+    if kind == "person":
+        return (f'<circle cx="{n(X)}" cy="{n(Y - a * .4)}" r="{n(a * .42)}" {st}/>'
+                f'<path d="M{n(X - a * .8)} {n(Y + a * .85)}a{n(a * .8)} {n(a * .75)} 0 0 1 {n(a * 1.6)} 0" {st}/>')
     # window
     return (f'<rect x="{n(X - a)}" y="{n(Y - a * .8)}" width="{n(2 * a)}" height="{n(a * 1.6)}" rx="{n(a * .2)}" {st}/>'
             f'<path d="M{n(X - a)} {n(Y - a * .3)}h{n(2 * a)}" {st}/>')
@@ -1477,7 +1483,8 @@ def motif_topology(doc, data, box, mini, t0):
         return motif_board(doc, data, box, mini, t0)
     x, y, w, h = box
     light = getattr(doc, "theme", "dark") != "dark"      # light or auto: the deeper colours read on both
-    types = GD_TYPES_LIGHT if light else GD_TYPES
+    types = dict(GD_TYPES_LIGHT if light else GD_TYPES)
+    types.update({k: v[1 if light else 0] for k, v in data.get("colours", {}).items()})   # a spec's own kinds
     done_c = "#16a34a" if light else GD_DONE
     W, H = getattr(doc, "size", SIZES["hero"])
     cap = glyphs()["cap"] / glyphs()["upm"]
@@ -1622,6 +1629,9 @@ def motif_topology(doc, data, box, mini, t0):
                     for q in range(6)]
             body.append(f'<path d="{poly(hexp, True)}" fill="var(--bg)" stroke="{col}" stroke-width="2.4"/>'
                         f'{_icon("robot", px, py + r * .06, r * .95).replace("var(--bg)", "var(--a3)")}')
+        elif who.startswith("icon:"):                    # a part of a system: its icon
+            body.append(f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r)}" fill="var(--bg)" stroke="{col}" stroke-width="2.4"/>'
+                        + _icon(who[5:], px, py, r * .95).replace("var(--bg)", col))
         else:
             fs = r * 1.05
             body.append(f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r)}" fill="var(--bg)" stroke="{col}" stroke-width="2.4"/>'
@@ -1630,7 +1640,7 @@ def motif_topology(doc, data, box, mini, t0):
         # the callout: a tick out of the node to a bar, the label above it (back of the orbit) or below it (front)
         up = z < 0
         ts, cs = 15, 11.5
-        tag = f"{kind} · {'AI AGENT' if who == 'agent' else who.upper()}"
+        tag = items[i][3] if len(items[i]) > 3 else f"{kind} · {'AI AGENT' if who == 'agent' else who.upper()}"
         lw = max(doc.width(title, "medium", ts), doc.width(tag, "medium", cs, 120))
         lx = min(max(px - lw / 2, x), x + w - lw)
         sg = -1 if up else 1
@@ -1648,6 +1658,8 @@ def motif_topology(doc, data, box, mini, t0):
         if who == "agent":
             lit = (f'<path d="{poly(hexp, True)}" fill="{col}" stroke="{col}" stroke-width="2.4"/>'
                    f'{_icon("robot", px, py + r * .06, r * .95)}')
+        elif who.startswith("icon:"):
+            lit = f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r + 1.2)}" fill="{col}"/>' + _icon(who[5:], px, py, r * .95)
         else:
             lit = (f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r + 1.2)}" fill="{col}"/>'
                    + doc.text(who[:1], "bold", fs, px - doc.width(who[:1], "bold", fs) / 2, py + fs * cap / 2,
@@ -1664,9 +1676,9 @@ def motif_topology(doc, data, box, mini, t0):
     lines, rt = wrap(doc, data.get("outcome", ""), "medium", rt, 160, 2)
     tw = max(doc.width(t, "medium", rt) for t in lines)
     by = y + h - 2 - (len(lines) - 1) * rt * 1.3
-    lab = "OUTCOME"
+    lab, word = data.get("readout", ["OUTCOME", "DONE"])
     cw = doc.width(lab + " ", "medium", rs, 160)
-    cnt = f"{N}/{N} DONE"
+    cnt = f"{N}/{N} {word}"
     rw = max(tw, cw + doc.width(cnt, "medium", rs, 160))
     rx0 = ox1 - rw
     ry0 = by - rt * cap - 10
@@ -1676,7 +1688,7 @@ def motif_topology(doc, data, box, mini, t0):
                + f'<path d="M{n(rx0 - 12)} {n(ry0 - rs * cap)}V{n(by + (len(lines) - 1) * rt * 1.3)}" class="gtcl" '
                f'stroke="{types["OUTCOME"]}"/></g>')
     for j in range(N + 1):                               # the count ticks up as items complete; N/N is the still frame
-        txt = doc.text(f"{j}/{N} DONE", "medium", rs, rx0 + cw, ry0, fill=done_c if j == N else "var(--muted)", track=160)
+        txt = doc.text(f"{j}/{N} {word}", "medium", rs, rx0 + cw, ry0, fill=done_c if j == N else "var(--muted)", track=160)
         a = done[order[j - 1]] if j else t0 + 1.2
         if j == N:
             out.append(f'<g class="gtqf" style="animation:gtqn .02s {n(a - .02, 2)}s step-end both">{txt}</g>')

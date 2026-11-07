@@ -151,81 +151,83 @@
     "items": [
      [
       "TASK",
-      "Dynamic level of detail",
-      "Alice"
+      "Carry ports and buses into item wiring",
+      "agent",
+      "TASK · AI AGENT"
      ],
      [
       "TASK",
-      "Carry ports and buses into item wiring",
-      "agent"
+      "Portable graphs through MCP authoring",
+      "icon:person",
+      "TASK · HUMAN"
      ],
      [
       "MILESTONE",
-      "Readable graphs at every zoom",
-      "Alice"
+      "Dynamic level of detail",
+      "icon:person",
+      "MILESTONE · HUMAN"
      ],
      [
       "TASK",
       "Organize graphs around their topology",
-      "Bob"
+      "icon:person",
+      "TASK · HUMAN"
      ],
      [
       "TASK",
       "Readable card and wire clearances",
-      "agent"
+      "agent",
+      "TASK · AI AGENT"
      ],
      [
-      "FEATURE",
-      "Portable graphs through MCP authoring",
-      "Charlie"
+      "BUG",
+      "Fresh installs fail at clone",
+      "icon:person",
+      "BUG · HUMAN"
      ]
     ],
     "deps": [
      [
       0,
-      1
+      2
      ],
      [
       1,
-      5
+      2
      ],
      [
       3,
-      2
-     ],
-     [
-      4,
-      2
+      4
      ]
     ],
     "order": [
-     0,
      3,
-     1,
+     0,
      4,
+     1,
      2,
      5
     ],
-    "outcome": "Production-ready graph system",
-    "source": "GraphDone-Core's current open work: dynamic level of detail (#193, #220), topology organization (#233) and MCP authoring (#217), owned by people and an AI agent",
+    "outcome": "Next GraphDone release",
+    "source": "GraphDone-Core's open issues: dynamic level of detail (#193) with its wiring (#220) and MCP authoring (#217) steps, topology organization (#233) and the installer fix (#243); people and an AI agent as owners",
     "labels": [
-     "Dynamic LOD",
      "Wire ports + buses",
-     "Readable graphs",
+     "MCP authoring",
+     "Dynamic LOD",
      "Topology layout",
      "Card clearances",
-     "MCP authoring"
+     "Installer fix"
     ],
     "angles": [
-     215,
-     270,
-     90,
      35,
      145,
+     90,
+     215,
+     270,
      325
     ]
    },
-   "desc": "GraphDone's current work as a live topology: work items ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour owned by a person or an AI agent and named by a HUD callout, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
+   "desc": "GraphDone's current work as a live topology: work items from its open issues ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour owned by a person or an AI agent and named by a HUD callout, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
    "glow": ".5",
    "backdrop": "grid",
    "hud": true
@@ -467,23 +469,23 @@
     "items": [
      [
       "TASK",
-      "Dynamic level of detail",
-      "Alice"
-     ],
-     [
-      "TASK",
       "Carry ports and buses into item wiring",
       "agent"
      ],
      [
+      "TASK",
+      "Portable graphs through MCP authoring",
+      "Human"
+     ],
+     [
       "MILESTONE",
-      "Readable graphs at every zoom",
-      "Alice"
+      "Dynamic level of detail",
+      "Human"
      ],
      [
       "TASK",
       "Organize graphs around their topology",
-      "Bob"
+      "Human"
      ],
      [
       "TASK",
@@ -491,10 +493,120 @@
       "agent"
      ],
      [
-      "FEATURE",
-      "Portable graphs through MCP authoring",
-      "Charlie"
+      "BUG",
+      "Fresh installs fail at clone",
+      "Human"
      ]
+    ],
+    "deps": [
+     [
+      0,
+      2
+     ],
+     [
+      1,
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ],
+    "order": [
+     3,
+     0,
+     4,
+     1,
+     2,
+     5
+    ],
+    "outcome": "Next GraphDone release",
+    "source": "GraphDone-Core's open issues: dynamic level of detail (#193) with its wiring (#220) and MCP authoring (#217) steps, topology organization (#233) and the installer fix (#243); people and an AI agent as owners"
+   }
+  },
+  {
+   "name": "graphdone-org",
+   "title": "GraphDone",
+   "name_size": 100,
+   "kind": "hero",
+   "palette": "graphdone",
+   "glow": ".5",
+   "backdrop": "grid",
+   "hud": true,
+   "out": "GraphDone/.github:profile/img/hero/graphdone",
+   "tagline": "One graph of work for people and AI agents. Open source to self-host, or hosted at graphdone.com.",
+   "facts": [
+    "MIT open core",
+    "MCP server · GraphQL API",
+    "self-host or graphdone.com"
+   ],
+   "alt": "GraphDone: one graph of work for people and AI agents. The open-source core (web app, GraphQL API, MCP server), the hosted app at graphdone.com, AI agents and people connect round shared outcomes.",
+   "desc": "GraphDone as one system: the open-source core's web app, GraphQL API and MCP server, the hosted app at graphdone.com built on that core, and the AI agents and people who work in the same graph ride an orbit round GraphDone's logo, each named by a HUD callout, over a perspective grid and drifting layers of distant graph. The parts come online in turn round the ring: each node fills, its links and its neon spoke to the centre light and data pulses flow inward; when all six are live the centre locks.",
+   "motif": {
+    "kind": "topology",
+    "items": [
+     [
+      "CORE",
+      "Web app",
+      "icon:window",
+      "OPEN CORE · MIT"
+     ],
+     [
+      "CORE",
+      "GraphQL API",
+      "icon:code",
+      "OPEN CORE · MIT"
+     ],
+     [
+      "CORE",
+      "MCP server",
+      "icon:chip",
+      "OPEN CORE · MIT"
+     ],
+     [
+      "CLOUD",
+      "graphdone.com",
+      "icon:cloud",
+      "HOSTED · BUILT ON CORE"
+     ],
+     [
+      "AGENT",
+      "AI agents",
+      "agent",
+      "PEERS · MCP + API"
+     ],
+     [
+      "PEOPLE",
+      "People",
+      "icon:person",
+      "PEERS · WEB APP"
+     ]
+    ],
+    "colours": {
+     "CORE": [
+      "#38bdf8",
+      "#0284c7"
+     ],
+     "CLOUD": [
+      "#fb923c",
+      "#ea580c"
+     ],
+     "AGENT": [
+      "#fbbf24",
+      "#b45309"
+     ],
+     "PEOPLE": [
+      "#4ade80",
+      "#16a34a"
+     ]
+    },
+    "angles": [
+     215,
+     270,
+     325,
+     90,
+     35,
+     145
     ],
     "deps": [
      [
@@ -503,27 +615,39 @@
      ],
      [
       1,
+      2
+     ],
+     [
+      2,
+      4
+     ],
+     [
+      0,
       5
      ],
      [
-      3,
-      2
+      4,
+      3
      ],
      [
-      4,
-      2
+      5,
+      3
      ]
     ],
     "order": [
      0,
-     3,
      1,
-     4,
      2,
-     5
+     4,
+     5,
+     3
     ],
-    "outcome": "Production-ready graph system",
-    "source": "GraphDone-Core's current open work: dynamic level of detail (#193, #220), topology organization (#233) and MCP authoring (#217), owned by people and an AI agent"
+    "outcome": "Shared outcomes in one graph",
+    "readout": [
+     "SYSTEM",
+     "LIVE"
+    ],
+    "source": "GraphDone's system: GraphDone-Core (MIT: web app, GraphQL API, MCP server, self-hostable) and the hosted app at graphdone.com built on it; people and AI agents work in the same graph"
    }
   },
   {
