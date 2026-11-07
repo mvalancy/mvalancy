@@ -147,7 +147,7 @@
     "MIT"
    ],
    "motif": {
-    "kind": "board",
+    "kind": "topology",
     "items": [
      [
       "TASK",
@@ -207,9 +207,28 @@
      5
     ],
     "outcome": "Production-ready graph system",
-    "source": "packages/server/src/scripts/seed.ts: project alpha's work items, their DEPENDS_ON and IS_PART_OF edges, its outcome and its contributors (people and an AI agent)"
+    "source": "packages/server/src/scripts/seed.ts: project alpha's work items, their DEPENDS_ON and IS_PART_OF edges, its outcome and its contributors (people and an AI agent)",
+    "labels": [
+     "Neo4j database",
+     "GraphQL schema",
+     "Graph visualization",
+     "D3 force layout",
+     "Node drag",
+     "Authentication"
+    ],
+    "angles": [
+     215,
+     270,
+     90,
+     35,
+     145,
+     325
+    ]
    },
-   "desc": "A list of work items from GraphDone's own seed graph, owned by people and an AI agent, with their dependencies drawn as arcs down the left and every item wired to the outcome, drawn as GraphDone's logo. The items complete in dependency order: each row's progress fills and a tick lands, its arcs and its wire light up and one of the logo's work nodes comes on; when every item is done the outcome is reached and work flows into it."
+   "desc": "GraphDone's own seed graph as a live topology: its work items ride an orbit round their outcome, drawn as GraphDone's logo, each a node in its type's colour owned by a person or an AI agent and named by a HUD callout, over a perspective grid and drifting layers of distant graph. The items complete in dependency order: each node fills, its dependency arcs and its neon spoke to the outcome light and data pulses flow inward, and one of the logo's work nodes comes on; when every item is done the outcome locks and the readout reads 6/6 done.",
+   "glow": ".5",
+   "backdrop": "grid",
+   "hud": true
   },
   {
    "name": "profile-mvalancy",

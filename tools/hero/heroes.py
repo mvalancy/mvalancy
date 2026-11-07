@@ -1458,6 +1458,283 @@ def motif_board(doc, data, box, mini, t0):
     return "".join(out)
 
 
+# the same type colours, deepened for a light page (Tailwind's 600/700 shades), where the 400s wash out
+GD_TYPES_LIGHT = {"TASK": "#16a34a", "FEATURE": "#0284c7", "BUG": "#dc2626", "MILESTONE": "#ea580c", "EPIC": "#c026d3",
+                  "IDEA": "#ca8a04", "OUTCOME": "#4f46e5", "RESEARCH": "#0d9488", "REQUIREMENT": "#0284c7"}
+
+
+def motif_topology(doc, data, box, mini, t0):
+    """GraphDone as a live graph in orbit: the work items of GraphDone's own seed graph ride an orbit round their
+    outcome (GraphDone's logo), each a node in its type's colour, owned by a person (their initial) or an AI agent
+    (a hexagon with a robot), with a HUD callout naming it. Their dependencies run along the orbit and every item is
+    wired to the outcome by a neon spoke. Behind it a perspective grid floor and two drifting layers of distant graph
+    give it depth. The items complete in dependency order: a ring closes round the node, its dependency arcs and its
+    spoke light and data pulses start to flow into the outcome, and one of the logo's work nodes comes on. With every
+    item done the outcome locks: a ring closes round the logo, the readout counts the last item and pings ring out.
+    The base style is the finished, locked graph. A card, or a box too small for the orbit and its callouts (a spotlight
+    under a long name), draws the board instead."""
+    if mini or box[3] < 300 or box[2] < 440:
+        return motif_board(doc, data, box, mini, t0)
+    x, y, w, h = box
+    light = getattr(doc, "theme", "dark") != "dark"      # light or auto: the deeper colours read on both
+    types = GD_TYPES_LIGHT if light else GD_TYPES
+    done_c = "#16a34a" if light else GD_DONE
+    W, H = getattr(doc, "size", SIZES["hero"])
+    cap = glyphs()["cap"] / glyphs()["upm"]
+    items = data["items"][:6]
+    N = len(items)
+    labels = (data.get("labels") or [it[1] for it in items])[:N]
+    deps = [(a, b) for a, b in data.get("deps", []) if a < N and b < N]
+    order = [i for i in data.get("order", range(N)) if i < N]
+    order += [i for i in range(N) if i not in order]
+    angles = list(data.get("angles") or [])[:N]
+    angles += [200 + 360 * k / N for k in range(len(angles), N)]      # evenly round the orbit where none is given
+    cx, cy = x + w * 0.51, y + h * 0.47                  # the orbit's centre; the outcome floats there
+    rx, ry = w * 0.37, h * 0.28
+    R = min(w, h) * 0.105                                # the logo's radius
+    pos = []
+    for th in angles:
+        a = math.radians(th)
+        z = math.sin(a)                                  # -1 at the back of the orbit, +1 at the front
+        pos.append((cx + rx * math.cos(a), cy + ry * z, z))
+    step, tc = 0.5, t0 + 2.0
+    done = {i: tc + step * j for j, i in enumerate(order)}
+    t_final = tc + step * N + 0.5
+    out = []
+    glows = {}
+
+    def glow(c):                                         # a soft radial glow in one colour, made once
+        if c not in glows:
+            glows[c] = doc.uid("gtz")
+            doc.defs.append(f'<radialGradient id="{glows[c]}"><stop offset=".3" stop-color="{c}" stop-opacity=".55"/>'
+                            f'<stop offset="1" stop-color="{c}" stop-opacity="0"/></radialGradient>')
+        return glows[c]
+    # ---- depth: a perspective floor and two layers of distant graph, drifting at different speeds (parallax)
+    hz = cy + ry * 0.55                                  # the floor's horizon, under the orbit
+    vp = (cx, cy - h * 0.25)
+    fl = []
+    for k in range(-9, 10):                              # lines running to the vanishing point
+        bx = cx + k * 70
+        tt = (hz - vp[1]) / (H - vp[1])
+        fl.append(f"M{n(vp[0] + (bx - vp[0]) * tt)} {n(hz)}L{n(bx)} {n(H)}")
+    for k in range(8):                                   # rungs closer together toward the horizon
+        yy = hz + (H - hz) * (k / 7) ** 1.8
+        fl.append(f"M{n(x - 40)} {n(yy)}H{n(W)}")
+    mid, fid = doc.uid("gtm"), doc.uid("gtf")
+    doc.defs.append(f'<radialGradient id="{fid}" gradientUnits="userSpaceOnUse" cx="{n(cx)}" cy="{n(H)}" r="{n(w * .62)}">'
+                    f'<stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#fff" stop-opacity=".5"/>'
+                    f'<stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'
+                    f'<mask id="{mid}"><rect x="0" y="{n(hz)}" width="{W}" height="{n(H - hz)}" fill="url(#{fid})"/></mask>')
+    Pscan = 3.2
+    out.append(f'<g class="gtd"{_delay(t0)} mask="url(#{mid})"><path d="{"".join(fl)}" class="gtfl"/>'
+               f'<path d="M0 {n(hz)}H{W}" class="gtsc"/></g>')
+    rnd = Rand(data.get("seed", "graphdone"))
+    layers = []
+    for q, (count, rr, op) in enumerate(((46, 1.1, .5), (12, 2.4, .55))):
+        pts = [(x - 60 + (w + 120) * rnd(), 14 + (H - 28) * rnd()) for _ in range(count)]
+        if q == 0:                                       # far: specks, a few joined
+            pts += [(40 + (x - 80) * rnd(), 14 + (H - 28) * rnd()) for _ in range(14)]
+        dots = "".join(f"M{n(px)} {n(py)}h0" for px, py in pts)
+        near = []
+        for i, p in enumerate(pts[:count]):
+            j = min((j for j in range(count) if j != i), key=lambda j: math.dist(p, pts[j]))
+            if math.dist(p, pts[j]) < (70 if q == 0 else 130) and i < j:
+                near.append(f"M{n(p[0])} {n(p[1])}L{n(pts[j][0])} {n(pts[j][1])}")
+        layers.append(f'<g class="gtp{q}"><path d="{"".join(near)}" class="gtl{q}"/>'
+                      f'<path d="{dots}" class="gtn{q}" stroke-width="{n(rr * 2, 1)}"/></g>')
+    out.append(f'<g class="gtd"{_delay(t0 + 0.1)}>{"".join(layers)}</g>')
+    # ---- the orbit, and the dependencies along it
+    oid = doc.uid("gto")
+    orbit = f'<ellipse id="{oid}" cx="{n(cx)}" cy="{n(cy)}" rx="{n(rx)}" ry="{n(ry)}" pathLength="1"/>'
+    doc.defs.append(orbit.replace('pathLength="1"', 'pathLength="100"'))
+    out.append(f'<ellipse cx="{n(cx)}" cy="{n(cy)}" rx="{n(rx * 1.13)}" ry="{n(ry * 1.13)}" class="gto2 gtd"{_delay(t0 + .2)}/>'
+               f'<ellipse cx="{n(cx)}" cy="{n(cy)}" rx="{n(rx)}" ry="{n(ry)}" pathLength="1" class="gto"{_delay(t0 + .2)}/>'
+               f'<g class="gtd"{_delay(t0 + 1)}><use href="#{oid}" class="gtof"/></g>')
+
+    def arc(a, b):                                       # along the orbit, the short way, from a to b
+        ta, tb = angles[a], angles[b]
+        d = (tb - ta + 540) % 360 - 180
+        steps = max(4, int(abs(d) / 4))
+        pts = [(cx + rx * math.cos(math.radians(ta + d * s / steps)),
+                cy + ry * math.sin(math.radians(ta + d * s / steps))) for s in range(steps + 1)]
+        return poly(pts)
+    dep_lit, dep_flow = [], []
+    Pf = 1.6
+    for k, (a, b) in enumerate(deps):
+        d = arc(a, b)
+        dep_lit.append(f'<path d="{d}" pathLength="1" class="gtdl"{_delay(done[a])}/>')
+        dep_flow.append(f'<g class="gtd"{_delay(done[a] + .4)}><path d="{d}" pathLength="1" class="gtdf" '
+                        f'style="animation-delay:-{n(Pf * k / max(1, len(deps)), 2)}s"/></g>')
+    # ---- the spokes: every item wired to the outcome, in neon from its type colour into the outcome's indigo
+    spokes, lit, flows = [], [], []
+    for i, (px, py, z) in enumerate(pos):
+        col = types.get(items[i][0], "#9ca3af")
+        L = math.hypot(cx - px, cy - py)
+        ux, uy = (cx - px) / L, (cy - py) / L
+        r = 13 + 3 * z
+        a0, b0 = (px + ux * (r + 4), py + uy * (r + 4)), (cx - ux * (R + 12), cy - uy * (R + 12))
+        gid = doc.uid("gts")
+        doc.defs.append(f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{n(a0[0])}" y1="{n(a0[1])}" '
+                        f'x2="{n(b0[0])}" y2="{n(b0[1])}"><stop offset="0" stop-color="{col}"/>'
+                        f'<stop offset="1" stop-color="var(--a1)"/></linearGradient>')
+        d = poly([a0, b0])
+        spokes.append(d)
+        lit.append(f'<g class="gtd"{_delay(done[i])}><path d="{d}" stroke="url(#{gid})" class="gtg"/></g>'
+                   f'<path d="{d}" pathLength="1" stroke="url(#{gid})" class="gtw"{_delay(done[i])}/>')
+        flows.append(f'<g class="gtd"{_delay(done[i] + .5)}><path d="{d}" pathLength="1" class="gtpf" '
+                     f'style="animation-delay:-{n(.27 * i, 2)}s"/></g>')
+    out.append(f'<path d="{"".join(spokes)}" class="gta gtd"{_delay(t0 + .6)}/>')
+    out += dep_lit + lit + dep_flow + flows
+    # ---- the outcome: GraphDone's logo, with HUD rings turning round it
+    k = R / 48
+    Lg = lambda u, v: (cx + (u - 50) * k, cy + (v - 50) * k)
+    gg = doc.uid("gtg")
+    doc.defs.append(f'<radialGradient id="{gg}" cx=".4" cy=".3" r=".7"><stop offset="0" stop-color="#fff" '
+                    f'stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>')
+    spk = "".join(f"M{n(Lg(u, v)[0])} {n(Lg(u, v)[1])}L{n(cx)} {n(cy)}" for u, v, _, _ in GD_LOGO)
+    logo = [f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R * 2.3)}" fill="url(#{glow("#6366f1")})" class="gth"/>',
+            f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R)}" fill="#4f46e5"/>',
+            f'<path d="{spk}" class="gds" stroke-width="{n(max(1.2, 2 * k), 1)}"/>']
+    for j, (u, v, r, c) in enumerate(GD_LOGO):
+        X, Y = Lg(u, v)
+        t = done[order[j]] + 0.55 if j < N else t_final
+        logo.append(f'<circle cx="{n(X)}" cy="{n(Y)}" r="{n(r * k * 1.25)}" fill="{c}" class="gdk"{_delay(t)}/>')
+    logo.append(f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R)}" fill="url(#{gg})"/>'
+                f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(7 * k * 1.2)}" fill="#fff" stroke="#4f46e5" '
+                f'stroke-width="{n(2 * k)}"/>')
+    rings = (f'<g class="gtd"{_delay(t0 + .7)}><circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 14)}" pathLength="360" class="gtr1"/>'
+             f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 22)}" pathLength="120" class="gtr2"/></g>')
+    out.append(rings + f'<g class="gdpop" style="transform-origin:{n(cx)}px {n(cy)}px;animation-delay:{n(t0 + 0.5, 2)}s">'
+               + "".join(logo) + "</g>")
+    out.append(f'<circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 6)}" pathLength="1" class="gtc"{_delay(t_final)}/>'
+               f'<g class="gtd"{_delay(t_final)}><circle cx="{n(cx)}" cy="{n(cy)}" r="{n(R + 6)}" class="gtpi" '
+               f'style="transform-origin:{n(cx)}px {n(cy)}px"/></g>')
+    # ---- the work items, back to front: a node in its type's colour, its owner inside, a callout naming it
+    for i in sorted(range(N), key=lambda i: pos[i][2]):
+        kind, title, who = items[i][0], labels[i], items[i][2]
+        col = types.get(kind, "#9ca3af")
+        px, py, z = pos[i]
+        r = 13 + 3 * z
+        t = done[i]
+        body = [f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r * 2.2)}" fill="url(#{glow(col)})"/>']
+        if who == "agent":
+            hexp = [(px + r * math.cos(math.pi / 6 + q * math.pi / 3), py + r * math.sin(math.pi / 6 + q * math.pi / 3))
+                    for q in range(6)]
+            body.append(f'<path d="{poly(hexp, True)}" fill="var(--bg)" stroke="{col}" stroke-width="2.4"/>'
+                        f'{_icon("robot", px, py + r * .06, r * .95).replace("var(--bg)", "var(--a3)")}')
+        else:
+            fs = r * 1.05
+            body.append(f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r)}" fill="var(--bg)" stroke="{col}" stroke-width="2.4"/>'
+                        + doc.text(who[:1], "bold", fs, px - doc.width(who[:1], "bold", fs) / 2, py + fs * cap / 2,
+                                   fill="var(--ink)"))
+        # the callout: a tick out of the node to a bar, the label above it (back of the orbit) or below it (front)
+        up = z < 0
+        ts, cs = 15, 11.5
+        tag = f"{kind} · {'AI AGENT' if who == 'agent' else who.upper()}"
+        lw = max(doc.width(title, "medium", ts), doc.width(tag, "medium", cs, 120))
+        lx = min(max(px - lw / 2, x), x + w - lw)
+        sg = -1 if up else 1
+        y0, y1 = py + sg * (r + 6), py + sg * (r + 16)
+        if up:
+            ty, gy = y1 - 7, y1 - 7 - ts * cap - 8
+        else:
+            gy, ty = y1 + 7 + cs * cap, y1 + 7 + cs * cap + 8 + ts * cap
+        top = gy - cs * cap - 6 if up else y1 + 2
+        bot = y1 - 2 if up else ty + 6
+        call = (f'<rect x="{n(lx - 6)}" y="{n(top)}" width="{n(lw + 12)}" height="{n(bot - top)}" rx="3" class="gtpl"/>'
+                f'<path d="M{n(px)} {n(y0)}V{n(y1)}M{n(lx)} {n(y1)}H{n(lx + lw)}" class="gtcl" stroke="{col}"/>'
+                + doc.text(title, "medium", ts, lx, ty, fill="var(--ink)")
+                + doc.text(tag, "medium", cs, lx, gy, fill=col, track=120))
+        if who == "agent":
+            lit = (f'<path d="{poly(hexp, True)}" fill="{col}" stroke="{col}" stroke-width="2.4"/>'
+                   f'{_icon("robot", px, py + r * .06, r * .95)}')
+        else:
+            lit = (f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r + 1.2)}" fill="{col}"/>'
+                   + doc.text(who[:1], "bold", fs, px - doc.width(who[:1], "bold", fs) / 2, py + fs * cap / 2,
+                              fill="var(--bg)"))
+        body.append(f'<g class="gdk"{_delay(t)}>{lit}</g>')
+        ring = (f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r + 5)}" pathLength="1" class="gtk" stroke="{done_c}"{_delay(t)}/>'
+                f'<circle cx="{n(px)}" cy="{n(py)}" r="{n(r + 5)}" class="gtx" stroke="{done_c}"'
+                f' style="transform-origin:{n(px)}px {n(py)}px;animation-delay:{n(t, 2)}s"/>')
+        out.append(f'<g class="gtn" style="transform-origin:{n(px)}px {n(py)}px;animation-delay:{n(t0 + .7 + .08 * i, 2)}s">'
+                   f'{"".join(body)}</g>{ring}<g class="gtd"{_delay(t0 + 1 + .08 * i)}>{call}</g>')
+    # ---- the readout, bottom right: the outcome, and the count of items done
+    rs, rt = 12, 15
+    ox1 = x + w
+    lines, rt = wrap(doc, data.get("outcome", ""), "medium", rt, 160, 2)
+    tw = max(doc.width(t, "medium", rt) for t in lines)
+    by = y + h - 2 - (len(lines) - 1) * rt * 1.3
+    lab = "OUTCOME"
+    cw = doc.width(lab + " ", "medium", rs, 160)
+    cnt = f"{N}/{N} DONE"
+    rw = max(tw, cw + doc.width(cnt, "medium", rs, 160))
+    rx0 = ox1 - rw
+    ry0 = by - rt * cap - 10
+    out.append(f'<g class="gtd"{_delay(t0 + 1.2)}>'
+               + "".join(doc.text(t, "medium", rt, rx0, by + q * rt * 1.3, fill="var(--ink)") for q, t in enumerate(lines))
+               + doc.text(lab, "medium", rs, rx0, ry0, fill=types["OUTCOME"], track=160)
+               + f'<path d="M{n(rx0 - 12)} {n(ry0 - rs * cap)}V{n(by + (len(lines) - 1) * rt * 1.3)}" class="gtcl" '
+               f'stroke="{types["OUTCOME"]}"/></g>')
+    for j in range(N + 1):                               # the count ticks up as items complete; N/N is the still frame
+        txt = doc.text(f"{j}/{N} DONE", "medium", rs, rx0 + cw, ry0, fill=done_c if j == N else "var(--muted)", track=160)
+        a = done[order[j - 1]] if j else t0 + 1.2
+        if j == N:
+            out.append(f'<g class="gtqf" style="animation:gtqn .02s {n(a - .02, 2)}s step-end both">{txt}</g>')
+        else:
+            out.append(f'<g class="gtq" style="animation:gtq {n(done[order[j]] - a, 2)}s {n(a, 2)}s linear both">{txt}</g>')
+    P1, P2, Pp, Pd = 30.0, 30.0, 2.6, 14.0      # rings: a quarter and a third of a turn a cycle
+    doc.periods.update(gtf=Pf, gtpf=Pf, gtr1=P1, gtr2=P2, gtpi=Pp, gth=Pp * 2, gtp0=Pd * 2, gtp1=Pd, gtof=12.0,
+                       gtsc=Pscan)
+    halo = ".55" if light else ".8"
+    doc.css.append(
+        ".gtd{animation:gdfade .7s ease-out both}@keyframes gdfade{from{opacity:0}}"
+        ".gtfl{fill:none;stroke:var(--a1);stroke-width:1;stroke-opacity:%s}"
+        ".gtsc{fill:none;stroke:var(--a2);stroke-width:2;opacity:0;animation:gtsc %ss cubic-bezier(.5,0,.9,.6) infinite}"
+        "@keyframes gtsc{0%%{opacity:0;transform:translateY(0)}15%%{opacity:.55}100%%{opacity:0;transform:translateY(%spx)}}"
+        ".gtp0{animation:gtp0 28s ease-in-out infinite}@keyframes gtp0{50%%{transform:translate(-7px,2px)}}"
+        ".gtp1{animation:gtp1 14s ease-in-out infinite}@keyframes gtp1{50%%{transform:translate(-14px,4px)}}"
+        ".gtl0{fill:none;stroke:var(--a1);stroke-width:.8;stroke-opacity:.25}"
+        ".gtl1{fill:none;stroke:var(--a1);stroke-width:1;stroke-opacity:.3}"
+        ".gtn0{fill:none;stroke:var(--edge);stroke-linecap:round;stroke-opacity:.35}"
+        ".gtn1{fill:none;stroke:var(--a1);stroke-linecap:round;stroke-opacity:.55}"
+        ".gto{fill:none;stroke:var(--a1);stroke-width:1.4;stroke-opacity:.45;stroke-dasharray:1;"
+        "animation:gddraw 1.2s ease-in-out both}@keyframes gddraw{from{stroke-dashoffset:1}}"
+        ".gto2{fill:none;stroke:var(--a1);stroke-width:1;stroke-opacity:.2;stroke-dasharray:2 6}"
+        ".gtof{fill:none;stroke:var(--a2);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:2 23;stroke-opacity:.6;"
+        "animation:gtof 12s linear infinite}@keyframes gtof{to{stroke-dashoffset:-100}}"
+        ".gta{fill:none;stroke:var(--a1);stroke-width:1.2;stroke-opacity:.35;stroke-dasharray:2 5}"
+        ".gtdl{fill:none;stroke:var(--a4);stroke-width:2.6;stroke-linecap:round;stroke-dasharray:1;"
+        "animation:gddraw .6s ease-in-out both}"
+        ".gtdf{fill:none;stroke:var(--edge);stroke-width:4;stroke-linecap:round;stroke-dasharray:.05 .95;"
+        "animation:gtf %ss linear infinite}@keyframes gtf{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"
+        ".gtg{fill:none;stroke-width:9;stroke-linecap:round;stroke-opacity:.18}"
+        ".gtw{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-dasharray:1;animation:gddraw .6s ease-in-out both}"
+        ".gtpf{fill:none;stroke:var(--edge);stroke-width:4.5;stroke-linecap:round;stroke-dasharray:.07 .93;"
+        "animation:gtpf %ss linear infinite}@keyframes gtpf{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}"
+        ".gth{opacity:%s;transform-box:fill-box;transform-origin:50%% 50%%;"
+        "animation:gth 5.2s ease-in-out infinite}@keyframes gth{50%%{opacity:%s;transform:scale(1.1)}}"
+        ".gds{fill:none;stroke:#e5e7eb;stroke-opacity:.55;stroke-linecap:round}"
+        ".gdk{transform-box:fill-box;transform-origin:50%% 50%%;animation:gdpop .4s cubic-bezier(.3,1.6,.5,1) both}"
+        "@keyframes gdpop{from{opacity:0;transform:scale(0)}}"
+        ".gdpop{animation:gdpop .7s cubic-bezier(.3,1.4,.5,1) both}"
+        ".gtn{animation:gdpop .5s cubic-bezier(.3,1.5,.5,1) both}"
+        ".gtr1{fill:none;stroke:var(--a1);stroke-width:1.5;stroke-dasharray:1.5 4.5;stroke-opacity:.8;transform-box:fill-box;"
+        "transform-origin:50%% 50%%;animation:gtr1 12s linear infinite}@keyframes gtr1{to{transform:rotate(90deg)}}"
+        ".gtr2{fill:none;stroke:var(--a2);stroke-width:2;stroke-dasharray:24 6 4 6;stroke-opacity:.6;transform-box:fill-box;"
+        "transform-origin:50%% 50%%;animation:gtr2 12s linear infinite}@keyframes gtr2{to{transform:rotate(-120deg)}}"
+        ".gtc{fill:none;stroke:%s;stroke-width:3;stroke-linecap:round;stroke-dasharray:1;animation:gddraw .8s ease-in-out both}"
+        ".gtpi{fill:none;stroke:%s;stroke-width:2;opacity:0;animation:gtpi 2.6s ease-out infinite}"
+        "@keyframes gtpi{0%%{opacity:.8;transform:scale(1)}100%%{opacity:0;transform:scale(1.9)}}"
+        ".gtk{fill:none;stroke-width:2.2;stroke-linecap:round;stroke-dasharray:1;animation:gddraw .45s ease-out both}"
+        ".gtx{fill:none;stroke-width:3;opacity:0;animation:gtx .7s ease-out both}"
+        "@keyframes gtx{0%%{opacity:0;transform:scale(1)}12%%{opacity:.9;transform:scale(1.1)}100%%{opacity:0;transform:scale(2.2)}}"
+        ".gtcl{fill:none;stroke-width:1.3;stroke-opacity:.8}.gtpl{fill:var(--bg);fill-opacity:.62}"
+        ".gtq{opacity:0}@keyframes gtq{0%%{opacity:0}1%%{opacity:1}99%%{opacity:1}100%%{opacity:0}}@keyframes gtqn{from{opacity:0}}"
+        % (".22" if light else ".3", n(Pscan, 3), n(H - hz, 1), n(Pf, 3), n(Pf, 3), halo, ".85" if light else "1",
+           done_c, done_c))
+    return "".join(out)
+
+
 def _fractal(rnd, cx, cy, R, branch, radii):
     """A radial code graph: a root, its modules, their files, their symbols, each level fanned out in its parent's
     sector, with a little jitter. Returns the levels of nodes [(x, y, angle, sector, branch)] and the edges of each
@@ -1599,7 +1876,7 @@ MOTIFS = {"cad": motif_cad, "stack": motif_stack, "ops": motif_ops, "catalog": m
           "circuit": motif_circuit, "chart": motif_chart, "dial": motif_dial, "slides": motif_slides,
           "linkage": motif_linkage, "wave": motif_wave, "crystal": motif_crystal, "radar": motif_radar,
           "fight": motif_fight, "network": motif_network, "pcb": motif_pcb,
-          "board": motif_board, "fractal": motif_fractal}
+          "board": motif_board, "topology": motif_topology, "fractal": motif_fractal}
 
 
 def motif_data(spec: dict) -> dict:
@@ -1764,6 +2041,11 @@ def _hero_text(doc, spec, title, kind, W, H, adv, cap):
         out.append(f'<g transform="{tr}" fill="url(#ng)">{doc.uses(title, "bold")}</g>')
     else:
         letters_svg, sketch_css, t_name = _sketch_title(doc, title, margin, base, s, adv, False)
+        if spec.get("glow") and getattr(doc, "theme", "") == "dark":    # a neon glow behind the name, once drawn
+            doc.defs.append('<filter id="nglow" x="-10%" y="-40%" width="120%" height="180%">'
+                            '<feGaussianBlur stdDeviation="9"/></filter>')
+            out.append(f'<g class="in" filter="url(#nglow)" opacity="{spec["glow"]}"{_delay(t_name)}>'
+                       f'<g transform="{tr}" fill="url(#ng)">{doc.uses(title, "bold")}</g></g>')
         out.append(letters_svg)
     doc.defs.append(f'<clipPath id="nc" transform="{tr}">{doc.uses(title, "bold")}</clipPath>')
     out.append(f'<g clip-path="url(#nc)"><rect class="sh" x="{n(margin - 160)}" y="{n(margin - 10)}" width="120" '
@@ -2158,6 +2440,7 @@ def render(spec: dict, theme: str) -> str:
     W, H = SIZES[kind]
     pal = palette(spec.get("palette", "teal"), "light" if theme == "auto" else theme)
     doc = Doc()
+    doc.theme, doc.size = theme, (W, H)
     mini = kind == "card"
     title = spec.get("title", spec["name"])
     body = []
@@ -2189,8 +2472,10 @@ def render(spec: dict, theme: str) -> str:
           f'stop-opacity="{pal["glow"]}"/><stop offset="1" stop-color="{pal["a1"]}" stop-opacity="0"/></radialGradient>'
           f'<linearGradient id="gr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--a1)"/>'
           f'<stop offset="1" stop-color="var(--a2)"/></linearGradient>'
-          f'<pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" '
-          f'fill="{pal["line"]}"/></pattern>')
+          + (f'<pattern id="dots" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" '
+             f'stroke="{pal["line"]}" stroke-width=".8"/></pattern>' if spec.get("backdrop") == "grid" else
+             f'<pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" '
+             f'fill="{pal["line"]}"/></pattern>'))
     frame = (f'<rect width="{W}" height="{H}" rx="{14 if mini else 18}" fill="url(#bgg)"/>'
              f'<rect width="{W}" height="{H}" rx="{14 if mini else 18}" fill="url(#dots)" opacity=".7"/>'
              f'<rect width="{W}" height="{H}" rx="{14 if mini else 18}" fill="url(#glow)"/>'
