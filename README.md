@@ -13,12 +13,12 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <td width="50%" valign="top">
 <a href="https://cad-agent.valpatel.com"><img src="assets/spot/cad-agent-dark.svg" width="100%" alt="cad-agent: your one stop shop for agentic CAD."></a>
 <br><a href="https://github.com/Valpatel/cad-agent"><img src="https://img.shields.io/github/v/release/Valpatel/cad-agent?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/Valpatel/cad-agent?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 11 · Release v0.36.1 and preserve optimized…</sub>
+<br><sub><b>New</b> · Nov 12 · test: retain bounded evidence for PowerShell…</sub>
 </td>
 <td width="50%" valign="top">
 <a href="https://gyropup.com"><img src="assets/spot/gyropup-dark.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
 <br><a href="https://github.com/Valpatel/gyropup"><img src="https://img.shields.io/github/last-commit/Valpatel/gyropup?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/Valpatel/gyropup?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 11 · Bind printable checklists to released toolkit…</sub>
+<br><sub><b>New</b> · Nov 11 · Retain failed public C capture evidence and…</sub>
 </td>
 </tr>
 <tr>
@@ -30,14 +30,14 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <td width="50%" valign="top">
 <a href="https://github.com/mvalancy/j501-agx-orin"><img src="assets/spot/j501-agx-orin-dark.svg" width="100%" alt="j501-agx-orin: a 3D-printable enclosure for the Seeed J501 carrier and Jetson AGX Orin."></a>
 <br><a href="https://github.com/mvalancy/j501-agx-orin"><img src="https://img.shields.io/github/last-commit/mvalancy/j501-agx-orin?style=flat-square" alt="last commit"> <img src="https://img.shields.io/github/stars/mvalancy/j501-agx-orin?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 3 · Regenerate the banner with mvalancy/mvalancy#6…</sub>
+<br><sub><b>New</b> · Nov 11 · Record cellular display validation and…</sub>
 </td>
 </tr>
 </table>
 <!-- spotlight:end -->
 
 <!-- activity:start -->
-<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.36.1">cad-agent v0.36.1</a> Nov 11 · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.19">val-ark 0.1.19</a> Nov 2</sub></p>
+<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.38.1">cad-agent v0.38.1</a> Nov 12 · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.19">val-ark 0.1.19</a> Nov 2</sub></p>
 <!-- activity:end -->
 
 ### Valpatel
