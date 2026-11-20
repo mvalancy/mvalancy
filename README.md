@@ -13,7 +13,7 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <td width="50%" valign="top">
 <a href="https://cad-agent.valpatel.com"><img src="assets/spot/cad-agent-dark.svg" width="100%" alt="cad-agent: your one stop shop for agentic CAD."></a>
 <br><a href="https://github.com/Valpatel/cad-agent"><img src="https://img.shields.io/github/v/release/Valpatel/cad-agent?style=flat-square&amp;label=release&amp;sort=date" alt="latest release"> <img src="https://img.shields.io/github/stars/Valpatel/cad-agent?style=flat-square&amp;label=%E2%98%85" alt="stars"></a>
-<br><sub><b>New</b> · Nov 17 · Fit point cap held by a literal; changelog…</sub>
+<br><sub><b>New</b> · Nov 20 · Prepare v0.50.3 with the SCADA panel and…</sub>
 </td>
 <td width="50%" valign="top">
 <a href="https://gyropup.com"><img src="assets/spot/gyropup-dark.svg" width="100%" alt="Gyropup: a research robot designed to balance on two wheel-legs, with a foam-ball turret."></a>
@@ -37,7 +37,7 @@ Owner of [Valpatel Software](https://valpatel.com): autonomous systems, simulati
 <!-- spotlight:end -->
 
 <!-- activity:start -->
-<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.25">val-ark 0.1.25</a> Nov 19 · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.48.0">cad-agent v0.48.0</a> Nov 17</sub></p>
+<p align="center"><sub><b>Latest releases</b> · <a href="https://github.com/Valpatel/cad-agent/releases/tag/v0.50.2">cad-agent v0.50.2</a> Nov 20 · <a href="https://github.com/mvalancy/val-ark/releases/tag/0.1.25">val-ark 0.1.25</a> Nov 19</sub></p>
 <!-- activity:end -->
 
 ### Valpatel
